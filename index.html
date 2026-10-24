@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>华为 CANN 异构计算与 Ascend C 算子开发实战体系</title>
   <link rel="stylesheet" href="./assets/style.css">
+  <script src="./assets/nav-drawer.js" defer></script>
   <style>
     .lesson-card {
       border: 1px solid var(--border);
@@ -54,9 +55,9 @@
   <nav class="course-nav">
     <div><a href="./index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a></div>
     <div>
-      <a href="./index.html">课程主页</a>
-      <a href="./reference/glossary.html">核心术语表</a>
-      <a href="./reference/architecture-cheatsheet.html">架构速查图</a>
+      <a href="./reference/glossary.html" data-drawer="glossary">📖 核心术语表</a>
+      <a href="./reference/architecture-cheatsheet.html" data-drawer="architecture">🗺️ 架构速查图</a>
+      <a href="#syllabus">📂 课程目录</a>
     </div>
   </nav>
 
@@ -72,20 +73,32 @@
   <h2>📚 核心参考手册 (Permanent References)</h2>
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0;">
     <div style="border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; background: #ffffff;">
-      <h3 style="margin-top:0;"><a href="./reference/glossary.html" style="text-decoration:none; color:var(--accent-blue);">📖 核心术语标准词典</a></h3>
-      <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0;">
+      <h3 style="margin-top:0;">
+        <a href="./reference/glossary.html" data-drawer="glossary" style="text-decoration:none; color:var(--accent-blue);">📖 核心术语表</a>
+      </h3>
+      <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0.75rem;">
         涵盖 AI Core、Cube、Vector、UB、GM、MTE 等全套专业概念与开发意义定义。
       </p>
+      <div style="font-size:0.8rem; display:flex; gap:0.8rem;">
+        <a href="./reference/glossary.html" data-drawer="glossary" style="color:var(--accent-blue); font-weight:600; text-decoration:none;">⚡ 侧边速查 (推荐)</a>
+        <a href="./reference/glossary.html" style="color:var(--ink-muted); text-decoration:none;">全屏查阅 ↗</a>
+      </div>
     </div>
     <div style="border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; background: #ffffff;">
-      <h3 style="margin-top:0;"><a href="./reference/architecture-cheatsheet.html" style="text-decoration:none; color:var(--accent-blue);">🗺️ 达芬奇 AI Core 架构速查</a></h3>
-      <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0;">
+      <h3 style="margin-top:0;">
+        <a href="./reference/architecture-cheatsheet.html" data-drawer="architecture" style="text-decoration:none; color:var(--accent-blue);">🗺️ 架构速查图</a>
+      </h3>
+      <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0.75rem;">
         硬件拓扑图解、三阶段流水线范式、32字节对齐与访存优化检查清单。
       </p>
+      <div style="font-size:0.8rem; display:flex; gap:0.8rem;">
+        <a href="./reference/architecture-cheatsheet.html" data-drawer="architecture" style="color:var(--accent-blue); font-weight:600; text-decoration:none;">⚡ 侧边速查 (推荐)</a>
+        <a href="./reference/architecture-cheatsheet.html" style="color:var(--ink-muted); text-decoration:none;">全屏查阅 ↗</a>
+      </div>
     </div>
   </div>
 
-  <h2>🚀 课程章节目录 (Syllabus)</h2>
+  <h2 id="syllabus">🚀 课程章节目录 (Syllabus)</h2>
 
   <div class="lesson-card">
     <div>

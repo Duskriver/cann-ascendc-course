@@ -6,14 +6,15 @@
   <title>第 0001 课：初识异构计算与达芬奇 AI Core 数据流</title>
   <link rel="stylesheet" href="../assets/style.css">
   <script src="../assets/quiz.js" defer></script>
+  <script src="../assets/nav-drawer.js" defer></script>
 </head>
 <body>
   <nav class="course-nav">
-    <div><a href="../index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a> &gt; 第 0001 课</div>
+    <div><a href="../index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a> &gt; 课时目录 &gt; 第 0001 课</div>
     <div>
-      <a href="../index.html">课程主页</a>
-      <a href="../reference/glossary.html">核心术语表</a>
-      <a href="../reference/architecture-cheatsheet.html">架构速查图</a>
+      <a href="../reference/glossary.html" data-drawer="glossary">📖 核心术语表</a>
+      <a href="../reference/architecture-cheatsheet.html" data-drawer="architecture">🗺️ 架构速查图</a>
+      <a href="../index.html">📋 课程主页</a>
     </div>
   </nav>
 
@@ -22,7 +23,7 @@
   <p class="subtitle">解密 NPU 核心算力：为什么 GPU/NPU 算子不能像 CPU 一样直接写指针？</p>
 
   <div class="mission-tie">
-    <strong>🎯 直通实战目标 (Your Mission)：</strong> 我们最终要实现用 <strong>Ascend C</strong> 编写可在昇腾 NPU 上跑通且性能最优的自定义算子。要写出高效算子，第一步不是背诵 API，而是建立硬件数据流动的心智模型——<strong>数据在哪里、谁来计算、谁来搬运</strong>。
+    <strong>🎯 直通实战目标 (Your Mission)：</strong> 我们最终要实现用 <span class="term-chip" data-term="Ascend C">Ascend C</span> 编写可在昇腾 NPU 上跑通且性能最优的自定义算子。要写出高效算子，第一步不是背诵 API，而是建立硬件数据流动的心智模型——<strong>数据在哪里、谁来计算、谁来搬运</strong>。
   </div>
 
   <h2>1. 异构计算的本质：Host（大脑）与 Device（超级工坊）</h2>
@@ -35,7 +36,7 @@
   </ul>
 
   <h2>2. 达芬奇 AI Core 内部：三大工种与存储分层</h2>
-  <p>打开昇腾 NPU，其最核心的计算单元叫做 <strong>AI Core（达芬奇核心）</strong>。不同于 CPU 的通用乱序执行，AI Core 内部高度专业化，明确划分了三类工种：</p>
+  <p>打开昇腾 NPU，其最核心的计算单元叫做 <span class="term-chip" data-term="AI Core">AI Core</span>。不同于 CPU 的通用乱序执行，AI Core 内部高度专业化，明确划分了三类工种：</p>
   
   <table>
     <thead>
@@ -47,17 +48,17 @@
     </thead>
     <tbody>
       <tr>
-        <td><strong>Cube 单元</strong></td>
+        <td><strong><span class="term-chip" data-term="Cube 单元">Cube 单元</span></strong></td>
         <td>重型矩阵压铸机</td>
         <td>大颗粒度矩阵乘法（$M \times K \times N$）。大模型注意力和全连接层的主力。</td>
       </tr>
       <tr>
-        <td><strong>Vector 单元</strong></td>
+        <td><strong><span class="term-chip" data-term="Vector 单元">Vector 单元</span></strong></td>
         <td>高速向量流水线</td>
         <td>一维张量元素级运算（加法、乘法、ReLU、GeLU、LayerNorm、Softmax）。</td>
       </tr>
       <tr>
-        <td><strong>Scalar 单元</strong></td>
+        <td><strong><span class="term-chip" data-term="Scalar 单元">Scalar 单元</span></strong></td>
         <td>车间排产调度员</td>
         <td>标量运算、循环控制计数、地址指针计算、分支跳转等逻辑控制。</td>
       </tr>
@@ -65,11 +66,11 @@
   </table>
 
   <div class="margin-note">
-    <strong>⚠️ 核心认知铁律：</strong> 片外大容量显存（Global Memory，简称 <strong>GM</strong>）容量大但访问速度慢；AI Core 内部的高速缓存（Unified Buffer，简称 <strong>UB</strong>）速度极快但容量极小（只有几百 KB）。<strong>Vector 计算单元无法直接计算 GM 中的数据！</strong>
+    <strong>⚠️ 核心认知铁律：</strong> 片外大容量显存（<span class="term-chip" data-term="Global Memory (GM)">Global Memory / GM</span>）容量大但访问速度慢；AI Core 内部的高速缓存（<span class="term-chip" data-term="Unified Buffer (UB)">Unified Buffer / UB</span>）速度极快但容量极小（只有几百 KB）。<strong>Vector 计算单元无法直接计算 GM 中的数据！</strong>
   </div>
 
   <h2>3. 算子流水线交互模拟器：CopyIn ➔ Compute ➔ CopyOut</h2>
-  <p>在 Ascend C 算子中，所有 Vector 运算都必须遵循严密的三阶段流水线。点击下方按钮观察数据流的跃迁：</p>
+  <p>在 <span class="term-chip" data-term="Ascend C">Ascend C</span> 算子中，所有 Vector 运算都必须遵循严密的三阶段流水线。点击下方按钮观察数据流的跃迁：</p>
 
   <div class="sim-panel">
     <div class="sim-controls">
@@ -81,15 +82,15 @@
     <div class="sim-stage-grid">
       <div class="sim-node active-node" data-node-id="node-gm-in">
         <div class="sim-node-title">1. CopyIn 阶段</div>
-        <div class="sim-node-sub">GM ➔ UB (MTE 引擎)</div>
+        <div class="sim-node-sub">GM ➔ UB (<span class="term-chip" data-term="MTE (搬运引擎)">MTE 引擎</span>)</div>
       </div>
       <div class="sim-node" data-node-id="node-ub-compute">
         <div class="sim-node-title">2. Compute 阶段</div>
-        <div class="sim-node-sub">UB 内部运算 (Vector 单元)</div>
+        <div class="sim-node-sub">UB 内部运算 (<span class="term-chip" data-term="Vector 单元">Vector 单元</span>)</div>
       </div>
       <div class="sim-node" data-node-id="node-gm-out">
         <div class="sim-node-title">3. CopyOut 阶段</div>
-        <div class="sim-node-sub">UB ➔ GM (MTE 引擎)</div>
+        <div class="sim-node-sub">UB ➔ GM (<span class="term-chip" data-term="MTE (搬运引擎)">MTE 引擎</span>)</div>
       </div>
     </div>
 
@@ -154,9 +155,12 @@ npu-smi info</code></pre>
       <strong>💬 导师在线提示：</strong><br>
       你已经完成了第 0001 课！完成真机命令 <code>npu-smi info</code> 后，如有任何疑问（例如：输出的卡号信息含义、环境变量未生效、或者想立刻看一眼真实的 Ascend C 核函数长什么样），随时在对话中向我提问。准备好后，我们即可进入 <strong>第 0002 课：解剖第一个 Ascend C 核函数（AddCustom 算子结构）</strong>！
     </div>
-    <div style="margin-top: 1.5rem; display: flex; justify-content: space-between; font-size: 0.9rem;">
-      <a href="../index.html">← 返回课程主页</a>
-      <a href="../reference/glossary.html">查阅术语表 →</a>
+
+    <!-- Standard Three-stage Lesson Flow Navigation -->
+    <div class="lesson-flow-nav">
+      <a href="../index.html" class="flow-btn">← 课时总览</a>
+      <a href="../index.html" class="flow-btn">📋 课程主页</a>
+      <div class="flow-btn upcoming" title="正在备课中，敬请期待">下一课：0002 核函数解剖 ⏳</div>
     </div>
   </footer>
 </body>
