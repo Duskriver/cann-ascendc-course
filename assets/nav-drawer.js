@@ -1,8 +1,8 @@
 /**
  * Navigation Drawer & Smart Flow Manager for CANN Teaching Workspace
- * - Provides non-intrusive side-drawer for Glossary & Architecture Cheatsheet
- * - In-text term lookup without losing reading position / context
- * - Smart return navigation for reference pages
+ * - Self-contained styles injection to guarantee zero-cache-glitch
+ * - Robust side-drawer for Glossary & Architecture Cheatsheet
+ * - Completely hidden from document flow when closed
  */
 
 (function () {
@@ -10,7 +10,232 @@
   const isSubdir = window.location.pathname.includes('/lessons/') || window.location.pathname.includes('/reference/');
   const rootPrefix = isSubdir ? '../' : './';
 
-  // Core Glossary Data for Instant In-Drawer Search & Lookups
+  // Inject styles directly to ensure drawer NEVER breaks due to cached/delayed external CSS
+  function ensureInjectedStyles() {
+    if (document.getElementById('site-drawer-injected-styles')) return;
+
+    const styleEl = document.createElement('style');
+    styleEl.id = 'site-drawer-injected-styles';
+    styleEl.textContent = `
+      /* Fail-safe Drawer Container: completely out of flow */
+      #site-drawer-container {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 99990;
+        pointer-events: none;
+      }
+      #site-drawer-container.visible {
+        display: block;
+        pointer-events: auto;
+      }
+
+      body.drawer-locked {
+        overflow: hidden !important;
+      }
+
+      .drawer-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(17, 17, 17, 0.45);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.25s ease, visibility 0.25s ease;
+        z-index: 99991;
+      }
+      .drawer-backdrop.open {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .drawer-panel {
+        position: fixed;
+        top: 0;
+        right: 0;
+        width: 500px;
+        max-width: 90vw;
+        height: 100vh;
+        background: #fdfdfc;
+        border-left: 1px solid #d8d6ce;
+        box-shadow: -6px 0 24px rgba(0, 0, 0, 0.15);
+        z-index: 99992;
+        display: flex;
+        flex-direction: column;
+        transform: translateX(100%);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        box-sizing: border-box;
+      }
+      .drawer-panel.open {
+        transform: translateX(0);
+      }
+
+      .drawer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.85rem 1.1rem;
+        border-bottom: 1px solid #d8d6ce;
+        background: #ffffff;
+      }
+
+      .drawer-tabs {
+        display: flex;
+        gap: 0.4rem;
+      }
+
+      .drawer-tab {
+        background: transparent;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        padding: 0.35rem 0.65rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #555555;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .drawer-tab:hover {
+        color: #111111;
+        background: #f7f6f0;
+      }
+      .drawer-tab.active {
+        background: #f7f6f0;
+        border-color: #d8d6ce;
+        color: #1f4e78;
+      }
+
+      .drawer-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .drawer-external-link {
+        font-size: 0.8rem;
+        color: #1f4e78;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .drawer-external-link:hover {
+        text-decoration: underline;
+      }
+
+      .drawer-close-btn {
+        background: transparent;
+        border: none;
+        font-size: 1.15rem;
+        line-height: 1;
+        color: #555555;
+        cursor: pointer;
+        padding: 0.3rem 0.5rem;
+        border-radius: 4px;
+      }
+      .drawer-close-btn:hover {
+        background: #eeeeee;
+        color: #111111;
+      }
+
+      .drawer-search-bar {
+        padding: 0.65rem 1.1rem;
+        background: #f7f6f0;
+        border-bottom: 1px solid #d8d6ce;
+      }
+      .drawer-search-bar input {
+        width: 100%;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.86rem;
+        border: 1px solid #d8d6ce;
+        border-radius: 4px;
+        background: #ffffff;
+        outline: none;
+        box-sizing: border-box;
+      }
+      .drawer-search-bar input:focus {
+        border-color: #1f4e78;
+      }
+
+      .drawer-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1rem 1.2rem;
+      }
+
+      .drawer-tab-pane {
+        display: none;
+      }
+      .drawer-tab-pane.active {
+        display: block;
+      }
+
+      .drawer-sec {
+        margin-bottom: 1.5rem;
+      }
+      .drawer-sec-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #111111;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px solid #d8d6ce;
+        padding-bottom: 0.25rem;
+      }
+
+      .drawer-term-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.85rem;
+      }
+      .drawer-term-item {
+        background: #ffffff;
+        border: 1px solid #d8d6ce;
+        border-radius: 5px;
+        padding: 0.75rem 0.9rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      }
+      .drawer-term-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.2rem;
+      }
+      .drawer-term-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #111111;
+      }
+      .drawer-term-badge {
+        font-size: 0.7rem;
+        padding: 0.1rem 0.4rem;
+        border-radius: 3px;
+        background: #f7f6f0;
+        border: 1px solid #d8d6ce;
+        color: #1f4e78;
+        font-weight: 600;
+      }
+      .drawer-term-en {
+        font-size: 0.76rem;
+        color: #555555;
+        font-style: italic;
+        margin-bottom: 0.4rem;
+      }
+      .drawer-term-desc {
+        font-size: 0.83rem;
+        line-height: 1.55;
+        color: #333333;
+      }
+    `;
+    document.head.appendChild(styleEl);
+  }
+
+  // Core Glossary Data
   const GLOSSARY_DATA = [
     {
       term: "Host 与 Device",
@@ -86,7 +311,6 @@
     }
   ];
 
-  // Cheatsheet HTML snippet for drawer
   const CHEATSHEET_HTML = `
     <div class="drawer-sec">
       <div class="drawer-sec-title">1. 达芬奇 AI Core 拓扑图</div>
@@ -118,25 +342,29 @@
 
     <div class="drawer-sec">
       <div class="drawer-sec-title">2. Vector 三阶段流水线</div>
-      <table style="font-size:0.82rem; width:100%; margin:0.5rem 0;">
+      <table style="font-size:0.82rem; width:100%; margin:0.5rem 0; border-collapse:collapse;">
         <thead>
-          <tr><th>阶段</th><th>单元</th><th>动作与典型 API</th></tr>
+          <tr style="border-bottom:1px solid #d8d6ce;">
+            <th style="text-align:left; padding:4px;">阶段</th>
+            <th style="text-align:left; padding:4px;">单元</th>
+            <th style="text-align:left; padding:4px;">动作与典型 API</th>
+          </tr>
         </thead>
         <tbody>
-          <tr>
-            <td><strong>1. CopyIn</strong></td>
-            <td>MTE2</td>
-            <td>GM ➔ UB<br><code>DataCopy(inLocal, inGlobal)</code></td>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:4px;"><strong>1. CopyIn</strong></td>
+            <td style="padding:4px;">MTE2</td>
+            <td style="padding:4px;">GM ➔ UB<br><code>DataCopy(inLocal, inGlobal)</code></td>
+          </tr>
+          <tr style="border-bottom:1px solid #eee;">
+            <td style="padding:4px;"><strong>2. Compute</strong></td>
+            <td style="padding:4px;">Vector</td>
+            <td style="padding:4px;">片上就地运算<br><code>Add(outLocal, inL1, inL2)</code></td>
           </tr>
           <tr>
-            <td><strong>2. Compute</strong></td>
-            <td>Vector</td>
-            <td>片上就地运算<br><code>Add(outLocal, inL1, inL2)</code></td>
-          </tr>
-          <tr>
-            <td><strong>3. CopyOut</strong></td>
-            <td>MTE3</td>
-            <td>UB ➔ GM<br><code>DataCopy(outGlobal, outLocal)</code></td>
+            <td style="padding:4px;"><strong>3. CopyOut</strong></td>
+            <td style="padding:4px;">MTE3</td>
+            <td style="padding:4px;">UB ➔ GM<br><code>DataCopy(outGlobal, outLocal)</code></td>
           </tr>
         </tbody>
       </table>
@@ -154,6 +382,7 @@
 
   // Build and inject drawer markup
   function initDrawer() {
+    ensureInjectedStyles();
     if (document.getElementById('site-drawer-container')) return;
 
     const drawerWrap = document.createElement('div');
@@ -220,13 +449,13 @@
           if (searchWrap) searchWrap.style.display = 'block';
           if (standaloneLink) {
             standaloneLink.href = `${rootPrefix}reference/glossary.html`;
-            standaloneLink.textContent = '术语全屏 ↗';
+            standaloneLink.textContent = '全屏 ↗';
           }
         } else {
           if (searchWrap) searchWrap.style.display = 'none';
           if (standaloneLink) {
             standaloneLink.href = `${rootPrefix}reference/architecture-cheatsheet.html`;
-            standaloneLink.textContent = '速查全屏 ↗';
+            standaloneLink.textContent = '全屏 ↗';
           }
         }
       });
@@ -262,12 +491,12 @@
     });
 
     if (filtered.length === 0) {
-      termListEl.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--ink-muted); font-size:0.85rem;">未找到与 "${filterKeyword}" 匹配的术语</div>`;
+      termListEl.innerHTML = `<div style="text-align:center; padding:2rem; color:#888; font-size:0.85rem;">未找到与 "${filterKeyword}" 匹配的术语</div>`;
       return;
     }
 
     termListEl.innerHTML = filtered.map((item) => `
-      <div class="drawer-term-item" id="term-item-${encodeURIComponent(item.term)}">
+      <div class="drawer-term-item">
         <div class="drawer-term-header">
           <span class="drawer-term-title">${item.term}</span>
           <span class="drawer-term-badge">${item.badge}</span>
@@ -285,13 +514,20 @@
 
   function openDrawer(tabName, termToHighlight) {
     initDrawer();
+    const container = document.getElementById('site-drawer-container');
     const panel = document.getElementById('drawer-panel');
     const backdrop = document.getElementById('drawer-backdrop');
-    if (!panel || !backdrop) return;
+    if (!container || !panel || !backdrop) return;
 
-    panel.classList.add('open');
-    backdrop.classList.add('open');
-    document.body.classList.add('drawer-locked');
+    // Display the fixed container
+    container.classList.add('visible');
+
+    // Trigger sliding animation
+    requestAnimationFrame(() => {
+      panel.classList.add('open');
+      backdrop.classList.add('open');
+      document.body.classList.add('drawer-locked');
+    });
 
     // Switch tab if specified
     if (tabName) {
@@ -310,11 +546,19 @@
   }
 
   function closeDrawer() {
+    const container = document.getElementById('site-drawer-container');
     const panel = document.getElementById('drawer-panel');
     const backdrop = document.getElementById('drawer-backdrop');
     if (panel) panel.classList.remove('open');
     if (backdrop) backdrop.classList.remove('open');
     document.body.classList.remove('drawer-locked');
+
+    // Hide container after animation finishes so it never captures clicks or takes space
+    setTimeout(() => {
+      if (container && !isDrawerOpen()) {
+        container.classList.remove('visible');
+      }
+    }, 280);
   }
 
   // Intercept navigation links with drawer triggers
@@ -355,10 +599,12 @@
   // Auto initialize on DOM ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
+      ensureInjectedStyles();
       initDrawer();
       bindDrawerTriggers();
     });
   } else {
+    ensureInjectedStyles();
     initDrawer();
     bindDrawerTriggers();
   }
