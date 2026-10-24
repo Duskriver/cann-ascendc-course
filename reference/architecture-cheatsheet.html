@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>达芬奇 AI Core 硬件模型与流水线速查 (Architecture Cheatsheet)</title>
+  <link rel="stylesheet" href="../assets/style.css">
+  <style>
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+      margin: 1.5rem 0;
+    }
+    .hw-box {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.25rem;
+      background: #ffffff;
+    }
+    .flow-step {
+      display: inline-block;
+      padding: 0.3rem 0.6rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-weight: 600;
+      margin: 0.2rem 0;
+    }
+  </style>
+</head>
+<body>
+  <nav class="course-nav">
+    <div><strong>CANN 教学工作区</strong> &gt; 架构速查手册</div>
+    <div>
+      <a href="../lessons/0001-cann-stack-and-aicore.html">返回第 0001 课</a>
+      <a href="./glossary.html">核心术语表</a>
+    </div>
+  </nav>
+
+  <h1>达芬奇 AI Core 硬件模型与流水线速查</h1>
+  <p class="subtitle">算子执行视角下的昇腾片上存储层级与计算流水线拓扑。</p>
+
+  <div class="mission-tie">
+    <strong>🎯 算子开发第一法则：</strong> 昇腾 AI Core 的计算引擎（Vector / Cube）<strong>绝不直接访问片外 Global Memory</strong>。所有算子代码的本质，就是组织<strong>搬入 (CopyIn) ➔ 计算 (Compute) ➔ 搬出 (CopyOut)</strong> 三大阶段的高速吞吐。
+  </div>
+
+  <h2>1. 硬件拓扑与存储层级图</h2>
+  <div class="diagram-box">
+<pre style="background:#1e1e1e; color:#dcdcdc; font-size:0.86rem; border-radius:6px; padding:1.2rem; overflow-x:auto;">
++---------------------------------------------------------------------------------------------+
+| HOST (主机 CPU)                                                                             |
+|   - 运行通用操作系统 (Linux)，负责 Python/PyTorch 框架解析与图调度                          |
+|   - 通过 AscendCL (ACL) 发起核函数执行请求 (Kernel Launch) 与 Tiling 参数下发               |
++---------------------------------------------------------------------------------------------+
+                                       │ PCIe / HCCS 总线
+                                       ▼
++---------------------------------------------------------------------------------------------+
+| DEVICE (昇腾 NPU)                                                                           |
+|                                                                                             |
+|   [ Global Memory (GM / HBM) ]  容量: 16GB ~ 96GB，延迟相对较高 (数百周期)                  |
+|                                                                                             |
+|   +────────────────────────────────── AI CORE 内部 ─────────────────────────────────────+   |
+|   │                                                                                     │   |
+|   │     [MTE2 搬运引擎] (GM ➔ 片上)             [MTE3 搬运引擎] (片上 ➔ GM)             │   |
+|   │              │                                        ▲                             │   |
+|   │              ▼                                        │                             │   |
+|   │   ┌───────────────────────────┐                       │                             │   |
+|   │   │ Unified Buffer (UB)       │───────────────────────┘                             │   |
+|   │   │ 片上高速缓存 (数百 KB)    │                                                     │   |
+|   │   └─────────────┬─────────────┘                                                     │   |
+|   │                 │ 读写数据 (单周期极速吞吐)                                         │   |
+|   │                 ▼                                                                   │   |
+|   │   ┌───────────────────────────┐           ┌───────────────────────────┐             │   |
+|   │   │ Vector 向量计算单元       │           │ Cube 矩阵乘加速器         │             │   |
+|   │   │ (加/减/乘/除/激活/归一化) │           │ (大颗粒度矩阵乘 MatMul)   │             │   |
+|   │   └───────────────────────────┘           └───────────────────────────┘             │   |
+|   │                                                                                     │   |
+|   │   ┌───────────────────────────────────────────────────────────────────┐             │   |
+|   │   │ Scalar 标量计算单元 (负责循环、指针偏移、条件分支与流程控制)      │             │   |
+|   │   └───────────────────────────────────────────────────────────────────┘             │   |
+|   +─────────────────────────────────────────────────────────────────────────────────────+   |
++---------------------------------------------------------------------------------------------+
+</pre>
+  </div>
+
+  <h2>2. Vector 算子三阶段流水线速查 (SPMD 范式)</h2>
+  <div class="hw-box">
+    <table style="margin: 0;">
+      <thead>
+        <tr>
+          <th>阶段</th>
+          <th>负责硬件单元</th>
+          <th>对应 Ascend C 核心动作</th>
+          <th>典型 API 模式</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="flow-step">Stage 1: CopyIn</span></td>
+          <td><strong>MTE2</strong> (搬运引擎)</td>
+          <td>从片外 <code>GlobalTensor</code> 切片搬入片内 <code>LocalTensor</code> (UB)</td>
+          <td><code>DataCopy(inLocal, inGlobal, size)</code></td>
+        </tr>
+        <tr>
+          <td><span class="flow-step">Stage 2: Compute</span></td>
+          <td><strong>Vector</strong> (向量单元)</td>
+          <td>在片上 <code>LocalTensor</code> 之间就地执行高速数学计算</td>
+          <td><code>Add(outLocal, inLocal1, inLocal2, size)</code></td>
+        </tr>
+        <tr>
+          <td><span class="flow-step">Stage 3: CopyOut</span></td>
+          <td><strong>MTE3</strong> (搬运引擎)</td>
+          <td>将计算完成的 <code>LocalTensor</code> 写回片外 <code>GlobalTensor</code></td>
+          <td><code>DataCopy(outGlobal, outLocal, size)</code></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>3. 算子调优黄金法则 (Storage Strength Checklist)</h2>
+  <ul>
+    <li><strong>带宽对齐规则：</strong> 昇腾 AI Core 数据搬运基本单元为 <strong>32 字节（32 Bytes Cache Line）</strong>。无论输入输出，地址与切分长度尽量保证 32 字节对齐。</li>
+    <li><strong>计算与搬运重叠：</strong> 纯串行执行效率低下，Ascend C 通过 <strong>双缓冲（Double Buffer）</strong> 技术让 MTE 搬运下一批数据的同时，Vector 单元正在计算当前批次数据。</li>
+    <li><strong>内存受限 vs 计算受限：</strong> 大多数 Vector 算子（如 Element-wise Add、Softmax）都是 <strong>Memory Bound（访存密集型）</strong>，性能上限取决于 GM ↔ UB 的搬运效率。</li>
+  </ul>
+
+  <footer class="lesson-footer">
+    <p><a href="../lessons/0001-cann-stack-and-aicore.html">← 返回第 0001 课：初识异构计算与达芬奇 AI Core</a></p>
+  </footer>
+</body>
+</html>

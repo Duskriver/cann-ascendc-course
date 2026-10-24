@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>华为 CANN 异构计算与 Ascend C 算子开发实战体系</title>
+  <link rel="stylesheet" href="./assets/style.css">
+  <style>
+    .lesson-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 1.2rem 1.4rem;
+      margin: 1rem 0;
+      background: #ffffff;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .lesson-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .lesson-card a {
+      font-size: 1.15rem;
+      font-weight: 600;
+      text-decoration: none;
+      color: var(--ink);
+    }
+    .lesson-card a:hover {
+      color: var(--accent);
+    }
+    .lesson-meta {
+      font-family: var(--font-sans);
+      font-size: 0.84rem;
+      color: var(--ink-muted);
+      margin-top: 0.35rem;
+    }
+    .tag {
+      display: inline-block;
+      font-size: 0.72rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 3px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      margin-right: 0.4rem;
+      color: var(--accent-blue);
+      font-weight: 600;
+    }
+    .tag-upcoming {
+      color: var(--ink-muted);
+      border-style: dashed;
+    }
+  </style>
+</head>
+<body>
+  <nav class="course-nav">
+    <div><strong>CANN 算子开发实战系统</strong></div>
+    <div>
+      <a href="./reference/glossary.html">术语表</a>
+      <a href="./reference/architecture-cheatsheet.html">架构速查</a>
+      <a href="./RESOURCES.md">学习资源</a>
+    </div>
+  </nav>
+
+  <span class="badge">Open Courseware · 零基础到工业级</span>
+  <h1>华为 CANN 异构计算与 Ascend C 算子开发</h1>
+  <p class="subtitle">面向昇腾 NPU 硬件底层，从达芬奇架构第一性原理出发，系统掌握高性能算子编写、流水线调度与访存调优。</p>
+
+  <div class="mission-tie">
+    <strong>🎯 课程核心目标 (Mission)：</strong><br>
+    从异构计算零基础出发，彻底掌握达芬奇 AI Core 硬件模型与数据流，使用 <strong>Ascend C</strong> 独立编写、孪生调试并深度优化高性能自定义算子，跑通真实昇腾 NPU 硬件环境。
+  </div>
+
+  <h2>📚 核心参考手册 (Permanent References)</h2>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.2rem 0;">
+    <div style="border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; background: #ffffff;">
+      <h3 style="margin-top:0;"><a href="./reference/glossary.html" style="text-decoration:none; color:var(--accent-blue);">📖 核心术语标准词典</a></h3>
+      <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0;">
+        涵盖 AI Core、Cube、Vector、UB、GM、MTE 等全套专业概念与开发意义定义。
+      </p>
+    </div>
+    <div style="border: 1px solid var(--border); border-radius: 6px; padding: 1.1rem; background: #ffffff;">
+      <h3 style="margin-top:0;"><a href="./reference/architecture-cheatsheet.html" style="text-decoration:none; color:var(--accent-blue);">🗺️ 达芬奇 AI Core 架构速查</a></h3>
+      <p style="font-size:0.88rem; color:var(--ink-muted); margin-bottom:0;">
+        硬件拓扑图解、三阶段流水线范式、32字节对齐与访存优化检查清单。
+      </p>
+    </div>
+  </div>
+
+  <h2>🚀 课程章节目录 (Syllabus)</h2>
+
+  <div class="lesson-card">
+    <div>
+      <span class="tag">已上线</span>
+      <span class="tag">硬件模型与数据流</span>
+      <a href="./lessons/0001-cann-stack-and-aicore.html">第 0001 课：初识异构计算与达芬奇 AI Core 数据流</a>
+    </div>
+    <div class="lesson-meta">
+      解密 NPU 核心算力：为什么 GPU/NPU 算子不能像 CPU 一样直接写指针？包含交互式流水线模拟器与真机探针练习。
+    </div>
+  </div>
+
+  <div class="lesson-card" style="opacity: 0.85; background: #fafafa;">
+    <div>
+      <span class="tag tag-upcoming">筹备中 · 下一课</span>
+      <span class="tag">代码骨架</span>
+      <span style="font-size: 1.15rem; font-weight: 600; color: var(--ink);">第 0002 课：解剖第一个 Ascend C 核函数 (AddCustom)</span>
+    </div>
+    <div class="lesson-meta">
+      从单核向量加法开始，深入 <code>__global__ __aicore__</code> 入口、<code>Init()</code> 与 <code>Process()</code> 经典流水结构。
+    </div>
+  </div>
+
+  <div class="lesson-card" style="opacity: 0.75; background: #fafafa;">
+    <div>
+      <span class="tag tag-upcoming">路线图</span>
+      <span class="tag">片上队列</span>
+      <span style="font-size: 1.15rem; font-weight: 600; color: var(--ink-muted);">第 0003 课：TPipe 与 TQue 队列同步与内存管理</span>
+    </div>
+    <div class="lesson-meta">
+      深入 Ascend C 的事件驱动与生产者-消费者模式，理解数据在 MTE 与 Vector 之间的非阻塞接力。
+    </div>
+  </div>
+
+  <div class="lesson-card" style="opacity: 0.75; background: #fafafa;">
+    <div>
+      <span class="tag tag-upcoming">路线图</span>
+      <span class="tag">工业级实战</span>
+      <span style="font-size: 1.15rem; font-weight: 600; color: var(--ink-muted);">第 0004 课：Host 侧 Tiling 切分算法与多核并行调度</span>
+    </div>
+    <div class="lesson-meta">
+      当 Tensor 远超片上 Unified Buffer 尺寸时，如何在 Host 侧设计精确的分块切片与核间负载均衡。
+    </div>
+  </div>
+
+  <footer class="lesson-footer">
+    <p>开源学习仓库 · 适配昇腾 CANN 8.0+ 及 Ascend C 编程规范</p>
+  </footer>
+</body>
+</html>

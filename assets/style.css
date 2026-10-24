@@ -1,0 +1,417 @@
+/* 
+ * Huawei CANN & Ascend C Teaching Workspace Stylesheet
+ * Inspired by Edward Tufte: high data-ink ratio, readable typography, margin notes, print-ready.
+ */
+
+:root {
+  --bg: #fffff8;
+  --surface: #f7f6f0;
+  --surface-accent: #eef2f5;
+  --ink: #111111;
+  --ink-muted: #555555;
+  --accent: #a61c1c;       /* Tufte crimson / Huawei subtle red */
+  --accent-blue: #1f4e78;  /* Architecture blue */
+  --border: #d8d6ce;
+  --success-bg: #edf7ed;
+  --success-ink: #1e4620;
+  --success-border: #81c784;
+  --error-bg: #fdeded;
+  --error-ink: #5f2120;
+  --error-border: #e57373;
+  --code-bg: #f2f0e8;
+  --font-serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Songti SC", "Noto Serif CJK SC", serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 17px;
+  background-color: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-serif);
+  line-height: 1.72;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 2.5rem 2rem 5rem;
+}
+
+/* Top Navigation / Breadcrumb */
+.course-nav {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 2.2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.course-nav a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  margin-left: 1rem;
+}
+
+.course-nav a:first-child {
+  margin-left: 0;
+}
+
+.course-nav a:hover {
+  text-decoration: underline;
+}
+
+.badge {
+  display: inline-block;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.55rem;
+  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--accent);
+}
+
+/* Headings */
+h1 {
+  font-weight: 400;
+  font-size: 2.1rem;
+  line-height: 1.25;
+  margin: 0.4rem 0 0.6rem;
+  color: var(--ink);
+}
+
+.subtitle {
+  font-size: 1.12rem;
+  color: var(--ink-muted);
+  font-style: italic;
+  margin-top: 0;
+  margin-bottom: 2rem;
+}
+
+h2 {
+  font-weight: 400;
+  font-style: italic;
+  font-size: 1.45rem;
+  margin-top: 2.6rem;
+  margin-bottom: 0.8rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+
+h3 {
+  font-family: var(--font-sans);
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-top: 1.6rem;
+  margin-bottom: 0.5rem;
+}
+
+p {
+  margin-top: 0;
+  margin-bottom: 1.15rem;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+a:hover {
+  color: var(--accent-blue);
+}
+
+/* Code & Pre */
+code {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  padding: 0.12em 0.38em;
+  border-radius: 3px;
+}
+
+pre {
+  background: #1d2021;
+  color: #ebdbb2;
+  padding: 1.1rem 1.3rem;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  line-height: 1.55;
+  margin: 1.2rem 0 1.5rem;
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Callout / Margin Note Box */
+.margin-note {
+  background: var(--surface);
+  border-left: 3px solid var(--accent);
+  padding: 0.9rem 1.2rem;
+  margin: 1.25rem 0;
+  font-size: 0.94rem;
+}
+
+.margin-note strong {
+  font-family: var(--font-sans);
+  color: var(--accent);
+}
+
+.mission-tie {
+  background: var(--surface-accent);
+  border-left: 3px solid var(--accent-blue);
+  padding: 0.9rem 1.2rem;
+  margin: 1.4rem 0;
+  font-size: 0.95rem;
+}
+
+/* Architecture Diagram Container */
+.diagram-box {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.5rem;
+  margin: 1.5rem 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+}
+
+.diagram-caption {
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  text-align: center;
+  margin-top: 0.75rem;
+}
+
+/* Interactive Pipeline Simulator */
+.sim-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.4rem;
+  margin: 1.6rem 0;
+  font-family: var(--font-sans);
+}
+
+.sim-controls {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.1rem;
+}
+
+.sim-btn {
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.48rem 0.95rem;
+  border: 1px solid var(--accent-blue);
+  background: #ffffff;
+  color: var(--accent-blue);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sim-btn:hover, .sim-btn.active {
+  background: var(--accent-blue);
+  color: #ffffff;
+}
+
+.sim-stage-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.sim-node {
+  background: #ffffff;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  padding: 0.9rem;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.sim-node.active-node {
+  border-color: var(--accent);
+  background: #fff8f6;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(166, 28, 28, 0.12);
+}
+
+.sim-node-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: 0.3rem;
+}
+
+.sim-node-sub {
+  font-size: 0.8rem;
+  color: var(--ink-muted);
+}
+
+.sim-status {
+  background: #ffffff;
+  border-left: 4px solid var(--accent-blue);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  min-height: 3.4rem;
+}
+
+/* Quiz Widget */
+.quiz-section {
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.quiz-question {
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.4rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.quiz-question:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.quiz-prompt {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quiz-option {
+  font-family: var(--font-mono);
+  font-size: 0.9rem;
+  text-align: left;
+  padding: 0.65rem 0.95rem;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.quiz-option:hover {
+  border-color: var(--accent-blue);
+  background: #f9fbfd;
+}
+
+.quiz-option.correct {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-ink);
+  font-weight: 600;
+}
+
+.quiz-option.incorrect {
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--error-ink);
+}
+
+.quiz-feedback {
+  margin-top: 0.65rem;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  padding: 0.6rem 0.85rem;
+  border-radius: 4px;
+  display: none;
+}
+
+.quiz-feedback.show-correct {
+  display: block;
+  background: var(--success-bg);
+  color: var(--success-ink);
+  border-left: 3px solid var(--success-border);
+}
+
+.quiz-feedback.show-incorrect {
+  display: block;
+  background: var(--error-bg);
+  color: var(--error-ink);
+  border-left: 3px solid var(--error-border);
+}
+
+/* Tables for Reference & Lessons */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1.3rem 0;
+  font-size: 0.92rem;
+}
+
+th, td {
+  text-align: left;
+  padding: 0.6rem 0.8rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+th {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  border-bottom: 2px solid var(--ink);
+}
+
+/* Footer / Teacher Reminder */
+.lesson-footer {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--border);
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+
+.teacher-callout {
+  background: #fff9eb;
+  border: 1px solid #e6d09c;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  margin-top: 1rem;
+}
+
+@media print {
+  body {
+    padding: 0;
+    font-size: 11pt;
+  }
+  .sim-controls, .course-nav {
+    display: none;
+  }
+}
