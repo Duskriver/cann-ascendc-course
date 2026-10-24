@@ -3,152 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>第 0001 课：初识异构计算与达芬奇 AI Core 数据流</title>
+  <script>
+    (function() {
+      const t = localStorage.getItem('site-theme');
+      if (t === 'dark' || t === 'light') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="../assets/style.css?v=20261025">
   <script src="../assets/quiz.js" defer></script>
   <script src="../assets/nav-drawer.js?v=20261025" defer></script>
 </head>
 <body>
-  <nav class="course-nav">
-    <div><a href="../index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a> &gt; 课时目录 &gt; 第 0001 课</div>
-    <div>
-      <a href="../reference/glossary.html" data-drawer="glossary">📖 核心术语表</a>
-      <a href="../reference/architecture-cheatsheet.html" data-drawer="architecture">🗺️ 架构速查图</a>
-      <a href="../index.html">📋 课程主页</a>
-    </div>
-  </nav>
+  <a href="#main-content" class="skip-link">跳至主要内容</a>
 
-  <span class="badge">Lesson 0001 · 概念与心智模型</span>
-  <h1>初识异构计算与达芬奇 AI Core</h1>
-  <p class="subtitle">解密 NPU 核心算力：为什么 GPU/NPU 算子不能像 CPU 一样直接写指针？</p>
-
-  <div class="mission-tie">
-    <strong>🎯 直通实战目标 (Your Mission)：</strong> 我们最终要实现用 <span class="term-chip" data-term="Ascend C">Ascend C</span> 编写可在昇腾 NPU 上跑通且性能最优的自定义算子。要写出高效算子，第一步不是背诵 API，而是建立硬件数据流动的心智模型——<strong>数据在哪里、谁来计算、谁来搬运</strong>。
-  </div>
-
-  <h2>1. 异构计算的本质：Host（大脑）与 Device（超级工坊）</h2>
-  <p>在传统的 CPU 编程中，计算与内存是平坦且统一的：CPU 直接读取主存中的数组，做完加法再写回主存。但在现代大模型与深度学习场景下，数据量动辄数十 GB，计算密度极高，通用 CPU 难以应对。</p>
-  <p>于是引入了<strong>异构计算（Heterogeneous Computing）</strong>架构：</p>
-  <ul>
-    <li><strong>Host（主机 CPU）：</strong> 负责整体业务逻辑控制、网络调度、以及向加速器发送算子下发指令（Kernel Launch）。</li>
-    <li><strong>Device（昇腾 NPU）：</strong> 拥有超高并行度的计算加速卡，负责沉重的大规模张量与矩阵运算。</li>
-    <li><strong>连接总线：</strong> Host 与 Device 之间通过 PCIe 或高速总线（如 HCCS）相连。</li>
-  </ul>
-
-  <h2>2. 达芬奇 AI Core 内部：三大工种与存储分层</h2>
-  <p>打开昇腾 NPU，其最核心的计算单元叫做 <span class="term-chip" data-term="AI Core">AI Core</span>。不同于 CPU 的通用乱序执行，AI Core 内部高度专业化，明确划分了三类工种：</p>
-  
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 25%;">计算单元</th>
-        <th style="width: 25%;">对应现实类比</th>
-        <th>负责的算子类型与操作</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong><span class="term-chip" data-term="Cube 单元">Cube 单元</span></strong></td>
-        <td>重型矩阵压铸机</td>
-        <td>大颗粒度矩阵乘法（$M \times K \times N$）。大模型注意力和全连接层的主力。</td>
-      </tr>
-      <tr>
-        <td><strong><span class="term-chip" data-term="Vector 单元">Vector 单元</span></strong></td>
-        <td>高速向量流水线</td>
-        <td>一维张量元素级运算（加法、乘法、ReLU、GeLU、LayerNorm、Softmax）。</td>
-      </tr>
-      <tr>
-        <td><strong><span class="term-chip" data-term="Scalar 单元">Scalar 单元</span></strong></td>
-        <td>车间排产调度员</td>
-        <td>标量运算、循环控制计数、地址指针计算、分支跳转等逻辑控制。</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <div class="margin-note">
-    <strong>⚠️ 核心认知铁律：</strong> 片外大容量显存（<span class="term-chip" data-term="Global Memory (GM)">Global Memory / GM</span>）容量大但访问速度慢；AI Core 内部的高速缓存（<span class="term-chip" data-term="Unified Buffer (UB)">Unified Buffer / UB</span>）速度极快但容量极小（只有几百 KB）。<strong>Vector 计算单元无法直接计算 GM 中的数据！</strong>
-  </div>
-
-  <h2>3. 算子流水线交互模拟器：CopyIn ➔ Compute ➔ CopyOut</h2>
-  <p>在 <span class="term-chip" data-term="Ascend C">Ascend C</span> 算子中，所有 Vector 运算都必须遵循严密的三阶段流水线。点击下方按钮观察数据流的跃迁：</p>
-
-  <div class="sim-panel">
-    <div class="sim-controls">
-      <button class="sim-btn active" data-sim-step="1" data-target-node="node-gm-in" data-desc="<strong>阶段 1 (CopyIn)：</strong> MTE 搬运引擎启动，将待计算的张量切片从片外 Global Memory 异步搬运到片内高速 Unified Buffer (UB)。">第一步：CopyIn (搬入片上)</button>
-      <button class="sim-btn" data-sim-step="2" data-target-node="node-ub-compute" data-desc="<strong>阶段 2 (Compute)：</strong> 向量计算单元 (Vector) 介入，在片上 UB 内直接执行高并行度的向量数学计算（如元素相加），单周期极速产出。">第二步：Compute (片上计算)</button>
-      <button class="sim-btn" data-sim-step="3" data-target-node="node-gm-out" data-desc="<strong>阶段 3 (CopyOut)：</strong> MTE 搬运引擎将计算完成的片上结果从 UB 写回到片外 Global Memory，释放片上缓存以供下一批处理。">第三步：CopyOut (写回显存)</button>
-    </div>
-
-    <div class="sim-stage-grid">
-      <div class="sim-node active-node" data-node-id="node-gm-in">
-        <div class="sim-node-title">1. CopyIn 阶段</div>
-        <div class="sim-node-sub">GM ➔ UB (<span class="term-chip" data-term="MTE (搬运引擎)">MTE 引擎</span>)</div>
+  <header>
+    <nav class="course-nav" aria-label="课程全局导航">
+      <div><a href="../index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a> &gt; 课时目录 &gt; 第 0001 课</div>
+      <div class="nav-actions">
+        <a href="../reference/glossary.html" data-drawer="glossary">📖 核心术语表</a>
+        <a href="../reference/architecture-cheatsheet.html" data-drawer="architecture">🗺️ 架构速查图</a>
+        <a href="../index.html">📋 课程主页</a>
+        <button class="theme-toggle-btn" type="button" aria-label="切换主题">🌓 主题</button>
       </div>
-      <div class="sim-node" data-node-id="node-ub-compute">
-        <div class="sim-node-title">2. Compute 阶段</div>
-        <div class="sim-node-sub">UB 内部运算 (<span class="term-chip" data-term="Vector 单元">Vector 单元</span>)</div>
+    </nav>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <span class="badge">Lesson 0001 · 概念与心智模型</span>
+    <h1>初识异构计算与达芬奇 AI Core</h1>
+    <p class="subtitle">解密 NPU 核心算力：为什么 GPU/NPU 算子不能像 CPU 一样直接写指针？</p>
+
+    <div class="mission-tie">
+      <strong>🎯 直通实战目标 (Your Mission)：</strong> 我们最终要实现用 <span class="term-chip" data-term="Ascend C">Ascend C</span> 编写可在昇腾 NPU 上跑通且性能最优的自定义算子。要写出高效算子，第一步不是背诵 API，而是建立硬件数据流动的心智模型——<strong>数据在哪里、谁来计算、谁来搬运</strong>。
+    </div>
+
+    <h2>1. 异构计算的本质：Host（大脑）与 Device（超级工坊）</h2>
+    <p>在传统的 CPU 编程中，计算与内存是平坦且统一的：CPU 直接读取主存中的数组，做完加法再写回主存。但在现代大模型与深度学习场景下，数据量动辄数十 GB，计算密度极高，通用 CPU 难以应对。</p>
+    <p>于是引入了<strong>异构计算（Heterogeneous Computing）</strong>架构：</p>
+    <ul>
+      <li><strong>Host（主机 CPU）：</strong> 负责整体业务逻辑控制、网络调度、以及向加速器发送算子下发指令（Kernel Launch）。</li>
+      <li><strong>Device（昇腾 NPU）：</strong> 拥有超高并行度的计算加速卡，负责沉重的大规模张量与矩阵运算。</li>
+      <li><strong>连接总线：</strong> Host 与 Device 之间通过 PCIe 或高速总线（如 HCCS）相连。</li>
+    </ul>
+
+    <h2>2. 达芬奇 AI Core 内部：三大工种与存储分层</h2>
+    <p>打开昇腾 NPU，其最核心的计算单元叫做 <span class="term-chip" data-term="AI Core">AI Core</span>。不同于 CPU 的通用乱序执行，AI Core 内部高度专业化，明确划分了三类工种：</p>
+    
+    <table>
+      <caption>AI Core 三大内部计算单元职责划分</caption>
+      <thead>
+        <tr>
+          <th scope="col" style="width: 25%;">计算单元</th>
+          <th scope="col" style="width: 25%;">对应现实类比</th>
+          <th scope="col">负责的算子类型与操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong><span class="term-chip" data-term="Cube 单元">Cube 单元</span></strong></td>
+          <td>重型矩阵压铸机</td>
+          <td>大颗粒度矩阵乘法（$M \times K \times N$）。大模型注意力和全连接层的主力。</td>
+        </tr>
+        <tr>
+          <td><strong><span class="term-chip" data-term="Vector 单元">Vector 单元</span></strong></td>
+          <td>高速向量流水线</td>
+          <td>一维张量元素级运算（加法、乘法、ReLU、GeLU、LayerNorm、Softmax）。</td>
+        </tr>
+        <tr>
+          <td><strong><span class="term-chip" data-term="Scalar 单元">Scalar 单元</span></strong></td>
+          <td>车间排产调度员</td>
+          <td>标量运算、循环控制计数、地址指针计算、分支跳转等逻辑控制。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="margin-note">
+      <strong>⚠️ 核心认知铁律：</strong> 片外大容量显存（<span class="term-chip" data-term="Global Memory (GM)">Global Memory / GM</span>）容量大但访问速度慢；AI Core 内部的高速缓存（<span class="term-chip" data-term="Unified Buffer (UB)">Unified Buffer / UB</span>）速度极快但容量极小（只有几百 KB）。<strong>Vector 计算单元无法直接计算 GM 中的数据！</strong>
+    </div>
+
+    <h2>3. 算子流水线交互模拟器：CopyIn ➔ Compute ➔ CopyOut</h2>
+    <p>在 <span class="term-chip" data-term="Ascend C">Ascend C</span> 算子中，所有 Vector 运算都必须遵循严密的三阶段流水线。点击下方按钮观察数据流的跃迁：</p>
+
+    <div class="sim-panel">
+      <div class="sim-controls" role="tablist" aria-label="流水线阶段切换">
+        <button class="sim-btn active" data-sim-step="1" data-target-node="node-gm-in" aria-selected="true" data-desc="<strong>阶段 1 (CopyIn)：</strong> MTE 搬运引擎启动，将待计算的张量切片从片外 Global Memory 异步搬运到片内高速 Unified Buffer (UB)。">第一步：CopyIn (搬入片上)</button>
+        <button class="sim-btn" data-sim-step="2" data-target-node="node-ub-compute" aria-selected="false" data-desc="<strong>阶段 2 (Compute)：</strong> 向量计算单元 (Vector) 介入，在片上 UB 内直接执行高并行度的向量数学计算（如元素相加），单周期极速产出。">第二步：Compute (片上计算)</button>
+        <button class="sim-btn" data-sim-step="3" data-target-node="node-gm-out" aria-selected="false" data-desc="<strong>阶段 3 (CopyOut)：</strong> MTE 搬运引擎将计算完成的片上结果从 UB 写回到片外 Global Memory，释放片上缓存以供下一批处理。">第三步：CopyOut (写回显存)</button>
       </div>
-      <div class="sim-node" data-node-id="node-gm-out">
-        <div class="sim-node-title">3. CopyOut 阶段</div>
-        <div class="sim-node-sub">UB ➔ GM (<span class="term-chip" data-term="MTE (搬运引擎)">MTE 引擎</span>)</div>
+
+      <div class="sim-stage-grid">
+        <div class="sim-node active-node" data-node-id="node-gm-in" aria-current="step">
+          <div class="sim-node-title">1. CopyIn 阶段</div>
+          <div class="sim-node-sub">GM ➔ UB (<span class="term-chip" data-term="MTE (搬运引擎)">MTE 引擎</span>)</div>
+        </div>
+        <div class="sim-node" data-node-id="node-ub-compute">
+          <div class="sim-node-title">2. Compute 阶段</div>
+          <div class="sim-node-sub">UB 内部运算 (<span class="term-chip" data-term="Vector 单元">Vector 单元</span>)</div>
+        </div>
+        <div class="sim-node" data-node-id="node-gm-out">
+          <div class="sim-node-title">3. CopyOut 阶段</div>
+          <div class="sim-node-sub">UB ➔ GM (<span class="term-chip" data-term="MTE (搬运引擎)">MTE 引擎</span>)</div>
+        </div>
+      </div>
+
+      <div class="sim-status" id="sim-status-text" aria-live="polite">
+        <strong>阶段 1 (CopyIn)：</strong> MTE 搬运引擎启动，将待计算的张量切片从片外 Global Memory 异步搬运到片内高速 Unified Buffer (UB)。
       </div>
     </div>
 
-    <div class="sim-status" id="sim-status-text">
-      <strong>阶段 1 (CopyIn)：</strong> MTE 搬运引擎启动，将待计算的张量切片从片外 Global Memory 异步搬运到片内高速 Unified Buffer (UB)。
-    </div>
-  </div>
-
-  <h2>4. 真机探针练习 (Hands-on Verification)</h2>
-  <p>你手头有昇腾硬件环境。请在终端连接到昇腾机器，执行以下探针命令，查看你的昇腾 NPU 硬件配置：</p>
-  <pre><code># 查看昇腾芯片型号、驱动版本及温度功耗
+    <h2>4. 真机探针练习 (Hands-on Verification)</h2>
+    <p>你手头有昇腾硬件环境。请在终端连接到昇腾机器，执行以下探针命令，查看你的昇腾 NPU 硬件配置：</p>
+    <pre><code># 查看昇腾芯片型号、驱动版本及温度功耗
 npu-smi info</code></pre>
-  <p><strong>实操自检清单：</strong></p>
-  <ol>
-    <li>终端是否输出了类似 <code>Ascend 910</code> 或 <code>Ascend 310</code> 系列芯片？</li>
-    <li>输出界面中能否看到 <strong>HBM / 内存使用量</strong>（这就是我们在算子中说的 Global Memory）？</li>
-    <li>执行 <code>echo $ASCEND_TOOLKIT_HOME</code>，确认 CANN 软件栈开发套件的环境变量是否已配置。</li>
-  </ol>
+    <p><strong>实操自检清单：</strong></p>
+    <ol>
+      <li>终端是否输出了类似 <code>Ascend 910</code> 或 <code>Ascend 310</code> 系列芯片？</li>
+      <li>输出界面中能否看到 <strong>HBM / 内存使用量</strong>（这就是我们在算子中说的 Global Memory）？</li>
+      <li>执行 <code>echo $ASCEND_TOOLKIT_HOME</code>，确认 CANN 软件栈开发套件的环境变量是否已配置。</li>
+    </ol>
 
-  <h2>5. 主动提取测验 (Active Recall Quiz)</h2>
-  <p>测试对达芬奇架构数据流的理解。点击选项即可获取即时反馈：</p>
+    <h2>5. 主动提取测验 (Active Recall Quiz)</h2>
+    <p>测试对达芬奇架构数据流的理解。点击选项即可获取即时反馈：</p>
 
-  <div class="quiz-section">
-    <!-- Question 1: Vector unit data constraint -->
-    <div class="quiz-question" 
-         data-correct="2"
-         data-explain-correct="正确！Vector 单元只能直接读写 AI Core 片内的 Unified Buffer (UB)，绝不能跨片直接在 GM 上计算。"
-         data-explain-wrong="不正确。请注意：片外 GM 容量大但延迟高，AI Core 的 Vector 计算单元无法直接对其发起数学指令。">
-      <div class="quiz-prompt">测验 1：在达芬奇架构中，Vector 向量计算单元能直接读取并计算哪个存储中的数据？</div>
-      <div class="quiz-options">
-        <button class="quiz-option">片外高容量全局显存介质</button>
-        <button class="quiz-option">主机端系统内存物理分页</button>
-        <button class="quiz-option">片内高速统一缓冲区空间</button>
-        <button class="quiz-option">硬盘阵列高速持久化分区</button>
+    <div class="quiz-section">
+      <!-- Question 1: Vector unit data constraint -->
+      <div class="quiz-question" 
+           data-correct="2"
+           data-explain-correct="正确！Vector 单元只能直接读写 AI Core 片内的 Unified Buffer (UB)，绝不能跨片直接在 GM 上计算。"
+           data-explain-wrong="不正确。请注意：片外 GM 容量大但延迟高，AI Core 的 Vector 计算单元无法直接对其发起数学指令。">
+        <div class="quiz-prompt">测验 1：在达芬奇架构中，Vector 向量计算单元能直接读取并计算哪个存储中的数据？</div>
+        <div class="quiz-options">
+          <button class="quiz-option" type="button">片外高容量全局显存介质</button>
+          <button class="quiz-option" type="button">主机端系统内存物理分页</button>
+          <button class="quiz-option" type="button">片内高速统一缓冲区空间</button>
+          <button class="quiz-option" type="button">硬盘阵列高速持久化分区</button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite" role="status"></div>
       </div>
-      <div class="quiz-feedback"></div>
+
+      <!-- Question 2: Three pipeline stages sequence -->
+      <div class="quiz-question" 
+           data-correct="0"
+           data-explain-correct="正确！Ascend C 遵循清晰的三阶段流水：先搬入片上高速缓存，再就地计算，最后写回全局显存。"
+           data-explain-wrong="不正确。回顾上面的交互模拟器：数据必须先由 MTE 从片外搬到片内，计算后才能写回。">
+        <div class="quiz-prompt">测验 2：Ascend C 基础向量算子核函数遵循的标准数据流转阶段顺序是什么？</div>
+        <div class="quiz-options">
+          <button class="quiz-option" type="button">搬入片上 ➔ 片上计算 ➔ 写回显存</button>
+          <button class="quiz-option" type="button">写回显存 ➔ 搬入片上 ➔ 片上计算</button>
+          <button class="quiz-option" type="button">片上计算 ➔ 搬入片上 ➔ 写回显存</button>
+          <button class="quiz-option" type="button">搬入片上 ➔ 写回显存 ➔ 片上计算</button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite" role="status"></div>
+      </div>
     </div>
 
-    <!-- Question 2: Three pipeline stages sequence -->
-    <div class="quiz-question" 
-         data-correct="0"
-         data-explain-correct="正确！Ascend C 遵循清晰的三阶段流水：先搬入片上高速缓存，再就地计算，最后写回全局显存。"
-         data-explain-wrong="不正确。回顾上面的交互模拟器：数据必须先由 MTE 从片外搬到片内，计算后才能写回。">
-      <div class="quiz-prompt">测验 2：Ascend C 基础向量算子核函数遵循的标准数据流转阶段顺序是什么？</div>
-      <div class="quiz-options">
-        <button class="quiz-option">搬入片上 ➔ 片上计算 ➔ 写回显存</button>
-        <button class="quiz-option">写回显存 ➔ 搬入片上 ➔ 片上计算</button>
-        <button class="quiz-option">片上计算 ➔ 搬入片上 ➔ 写回显存</button>
-        <button class="quiz-option">搬入片上 ➔ 写回显存 ➔ 片上计算</button>
-      </div>
-      <div class="quiz-feedback"></div>
+    <h2>6. 推荐第一手权威资料 (Primary Source)</h2>
+    <div class="margin-note">
+      <strong>📖 必读权威源：</strong> <a href="https://www.hiascend.com/document" target="_blank" rel="noopener">昇腾社区官方文档中心 - 《Ascend C 算子开发指南》</a> 中的 <strong>“快速入门 &gt; 编程模型”</strong> 章节。官方图文详尽展示了 DaVinci 核心的硬件微架构与 SPMD 模型，建议作为本课的背景通读材料。
     </div>
-  </div>
-
-  <h2>6. 推荐第一手权威资料 (Primary Source)</h2>
-  <div class="margin-note">
-    <strong>📖 必读权威源：</strong> <a href="https://www.hiascend.com/document" target="_blank" rel="noopener">昇腾社区官方文档中心 - 《Ascend C 算子开发指南》</a> 中的 <strong>“快速入门 &gt; 编程模型”</strong> 章节。官方图文详尽展示了 DaVinci 核心的硬件微架构与 SPMD 模型，建议作为本课的背景通读材料。
-  </div>
+  </main>
 
   <footer class="lesson-footer">
     <div class="teacher-callout">

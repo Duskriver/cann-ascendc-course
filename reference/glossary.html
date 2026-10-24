@@ -3,108 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
   <title>CANN & 达芬奇架构核心术语表 (Glossary)</title>
+  <script>
+    (function() {
+      const t = localStorage.getItem('site-theme');
+      if (t === 'dark' || t === 'light') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+    })();
+  </script>
   <link rel="stylesheet" href="../assets/style.css?v=20261025">
   <script src="../assets/nav-drawer.js?v=20261025" defer></script>
 </head>
 <body>
-  <nav class="course-nav">
-    <div><a href="../index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a> &gt; 参考手册 &gt; 核心术语表</div>
-    <div>
-      <a href="../index.html">📋 课程主页</a>
-      <a href="./architecture-cheatsheet.html">🗺️ 架构速查图</a>
+  <a href="#main-content" class="skip-link">跳至主要内容</a>
+
+  <header>
+    <nav class="course-nav" aria-label="课程全局导航">
+      <div><a href="../index.html" style="color:inherit; text-decoration:none; font-weight:700;">🏠 CANN 算子开发实战</a> &gt; 参考手册 &gt; 核心术语表</div>
+      <div class="nav-actions">
+        <a href="../index.html">📋 课程主页</a>
+        <a href="./architecture-cheatsheet.html">🗺️ 架构速查图</a>
+        <button class="theme-toggle-btn" type="button" aria-label="切换主题">🌓 主题</button>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <div class="ref-action-bar">
+      <div><strong>📖 核心参考手册模式</strong>（全局常驻词典）</div>
+      <div>
+        <a href="#" data-smart-back="../index.html" style="color:var(--accent-blue); text-decoration:none; font-weight:600; margin-right:1rem;">← 返回刚才的学习页面</a>
+        <a href="../index.html" style="color:var(--ink-muted); text-decoration:none;">课程目录</a>
+      </div>
     </div>
-  </nav>
 
-  <div class="ref-action-bar">
-    <div><strong>📖 核心参考手册模式</strong>（全局常驻词典）</div>
-    <div>
-      <a href="#" data-smart-back="../index.html" style="color:var(--accent-blue); text-decoration:none; font-weight:600; margin-right:1rem;">← 返回刚才的学习页面</a>
-      <a href="../index.html" style="color:var(--ink-muted); text-decoration:none;">课程目录</a>
+    <h1>CANN & 达芬奇架构核心术语表</h1>
+    <p class="subtitle">算子开发与底层硬件协同的标准化词汇基准，所有课程均严格遵从本表定义。</p>
+
+    <div class="margin-note">
+      <strong>💡 查阅准则：</strong> 异构计算学习中最容易造成记忆混淆的是各类存储（GM、UB、L1/L0）和搬运引擎（MTE）。每当遇到不熟悉的硬件缩写，随时回到本表速查。
     </div>
-  </div>
 
-  <h1>CANN & 达芬奇架构核心术语表</h1>
-  <p class="subtitle">算子开发与底层硬件协同的标准化词汇基准，所有课程均严格遵从本表定义。</p>
-
-  <div class="margin-note">
-    <strong>💡 查阅准则：</strong> 异构计算学习中最容易造成记忆混淆的是各类存储（GM、UB、L1/L0）和搬运引擎（MTE）。每当遇到不熟悉的硬件缩写，随时回到本表速查。
-  </div>
-
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 22%;">术语 (中文 / 英文)</th>
-        <th style="width: 28%;">硬件 / 软件角色</th>
-        <th>核心定义与算子开发意义</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><strong>Host 与 Device</strong><br><small>主机与设备</small></td>
-        <td>系统异构拓扑</td>
-        <td><strong>Host</strong> 指运行通用操作系统（Linux）的主机 CPU，负责任务分发与流程控制；<strong>Device</strong> 指昇腾 NPU 硬件加速器，负责执行高密度并行计算。</td>
-      </tr>
-      <tr>
-        <td><strong>CANN</strong><br><small>Compute Architecture for Neural Networks</small></td>
-        <td>软件栈中间件</td>
-        <td>华为异构计算架构，向下屏蔽昇腾芯片硬件细节，向上支撑 MindSpore、PyTorch、TensorFlow 等 AI 框架，提供驱动、Runtime、图引擎（GE）与统一算子库。</td>
-      </tr>
-      <tr>
-        <td><strong>AI Core</strong><br><small>达芬奇计算核心</small></td>
-        <td>硬件执行单元</td>
-        <td>昇腾 NPU 的核心计算引擎，内部集成了 Cube（矩阵）、Vector（向量）、Scalar（标量）三大计算单元及多级片上高速缓存。</td>
-      </tr>
-      <tr>
-        <td><strong>Cube 单元</strong><br><small>矩阵乘加速器</small></td>
-        <td>AI Core 计算部件</td>
-        <td>专用于大颗粒度矩阵乘法（$M \times K \times N$）硬件加速，单指令即可完成三维立方矩阵乘加运算，是大模型计算的主力。</td>
-      </tr>
-      <tr>
-        <td><strong>Vector 单元</strong><br><small>向量计算部件</small></td>
-        <td>AI Core 计算部件</td>
-        <td>专用于一维数组/张量的并行运算，负责元素级加减乘除、激活函数（ReLU/GeLU/Sigmoid）、归一化（LayerNorm/Softmax）等操作。</td>
-      </tr>
-      <tr>
-        <td><strong>Scalar 单元</strong><br><small>标量计算部件</small></td>
-        <td>AI Core 控制部件</td>
-        <td>执行常规基础控制流指令（循环计数、地址计算、分支跳转），相当于 AI Core 内部的微型控制大脑。</td>
-      </tr>
-      <tr>
-        <td><strong>Global Memory (GM)</strong><br><small>全局显存 / HBM / DDR</small></td>
-        <td>片外大容量存储</td>
-        <td>位于 AI Core 之外的高容量内存（数十 GB）。容量大但访问延迟较高，AI Core 的计算单元<strong>无法直接在此处进行数学运算</strong>。</td>
-      </tr>
-      <tr>
-        <td><strong>Unified Buffer (UB)</strong><br><small>统一缓冲区</small></td>
-        <td>片上高速 SRAM 存储</td>
-        <td>AI Core 内部专供 Vector 单元读写的高速片上暂存空间（通常几百 KB）。数据必须由 GM 搬入 UB 才能被 Vector 单元计算。</td>
-      </tr>
-      <tr>
-        <td><strong>MTE (Memory Transfer Engine)</strong><br><small>片上搬运引擎</small></td>
-        <td>硬件 DMA 控制器</td>
-        <td>负责不同存储介质间（如 GM ↔ UB、GM ↔ L1/L0）异步数据搬运的专用硬件管线，实现数据搬运与数学计算的流水线重叠。</td>
-      </tr>
-      <tr>
-        <td><strong>Ascend C</strong><br><small>昇腾 C/C++ 算子编程语言</small></td>
-        <td>编程接口规范</td>
-        <td>原生 C/C++ 风格的高性能算子开发语言，采用 SPMD（单程序多数据）编程模型，提供自动多级流水调度与丰富的结构化 Tensor API。</td>
-      </tr>
-      <tr>
-        <td><strong>Tiling</strong><br><small>数据分块切片</small></td>
-        <td>Host 侧调度策略</td>
-        <td>将全局显存中超出片上高速缓冲区（UB）容量的超大 Tensor，切分为若干适合单次核函数与单块缓存处理的瓦片（Tile）的数学算法。</td>
-      </tr>
-      <tr>
-        <td><strong>TPipe & TQue</strong><br><small>管道与消息队列</small></td>
-        <td>Ascend C 基础管道抽象</td>
-        <td>Ascend C 提供的片上数据流管理机制。开发者通过队列在 `CopyIn`、`Compute`、`CopyOut` 之间传递临时缓存指针，硬件自动完成同步与乱序隐藏。</td>
-      </tr>
-    </tbody>
-  </table>
+    <table>
+      <caption>CANN 算子开发核心软硬件术语清单</caption>
+      <thead>
+        <tr>
+          <th scope="col" style="width: 22%;">术语 (中文 / 英文)</th>
+          <th scope="col" style="width: 28%;">硬件 / 软件角色</th>
+          <th scope="col">核心定义与算子开发意义</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Host 与 Device</strong><br><small>主机与设备</small></td>
+          <td>系统异构拓扑</td>
+          <td><strong>Host</strong> 指运行通用操作系统（Linux）的主机 CPU，负责任务分发与流程控制；<strong>Device</strong> 指昇腾 NPU 硬件加速器，负责执行高密度并行计算。</td>
+        </tr>
+        <tr>
+          <td><strong>CANN</strong><br><small>Compute Architecture for Neural Networks</small></td>
+          <td>软件栈中间件</td>
+          <td>华为异构计算架构，向下屏蔽昇腾芯片硬件细节，向上支撑 MindSpore、PyTorch、TensorFlow 等 AI 框架，提供驱动、Runtime、图引擎（GE）与统一算子库。</td>
+        </tr>
+        <tr>
+          <td><strong>AI Core</strong><br><small>达芬奇计算核心</small></td>
+          <td>硬件执行单元</td>
+          <td>昇腾 NPU 的核心计算引擎，内部集成了 Cube（矩阵）、Vector（向量）、Scalar（标量）三大计算单元及多级片上高速缓存。</td>
+        </tr>
+        <tr>
+          <td><strong>Cube 单元</strong><br><small>矩阵乘加速器</small></td>
+          <td>AI Core 计算部件</td>
+          <td>专用于大颗粒度矩阵乘法（$M \times K \times N$）硬件加速，单指令即可完成三维立方矩阵乘加运算，是大模型计算的主力。</td>
+        </tr>
+        <tr>
+          <td><strong>Vector 单元</strong><br><small>向量计算部件</small></td>
+          <td>AI Core 计算部件</td>
+          <td>专用于一维数组/张量的并行运算，负责元素级加减乘除、激活函数（ReLU/GeLU/Sigmoid）、归一化（LayerNorm/Softmax）等操作。</td>
+        </tr>
+        <tr>
+          <td><strong>Scalar 单元</strong><br><small>标量计算部件</small></td>
+          <td>AI Core 控制部件</td>
+          <td>执行常规基础控制流指令（循环计数、地址计算、分支跳转），相当于 AI Core 内部的微型控制大脑。</td>
+        </tr>
+        <tr>
+          <td><strong>Global Memory (GM)</strong><br><small>全局显存 / HBM / DDR</small></td>
+          <td>片外大容量存储</td>
+          <td>位于 AI Core 之外的高容量内存（数十 GB）。容量大但访问延迟较高，AI Core 的计算单元<strong>无法直接在此处进行数学运算</strong>。</td>
+        </tr>
+        <tr>
+          <td><strong>Unified Buffer (UB)</strong><br><small>统一缓冲区</small></td>
+          <td>片上高速 SRAM 存储</td>
+          <td>AI Core 内部专供 Vector 单元读写的高速片上暂存空间（通常几百 KB）。数据必须由 GM 搬入 UB 才能被 Vector 单元计算。</td>
+        </tr>
+        <tr>
+          <td><strong>MTE (Memory Transfer Engine)</strong><br><small>片上搬运引擎</small></td>
+          <td>硬件 DMA 控制器</td>
+          <td>负责不同存储介质间（如 GM ↔ UB、GM ↔ L1/L0）异步数据搬运的专用硬件管线，实现数据搬运与数学计算的流水线重叠。</td>
+        </tr>
+        <tr>
+          <td><strong>Ascend C</strong><br><small>昇腾 C/C++ 算子编程语言</small></td>
+          <td>编程接口规范</td>
+          <td>原生 C/C++ 风格的高性能算子开发语言，采用 SPMD（单程序多数据）编程模型，提供自动多级流水调度与丰富的结构化 Tensor API。</td>
+        </tr>
+        <tr>
+          <td><strong>Tiling</strong><br><small>数据分块切片</small></td>
+          <td>Host 侧调度策略</td>
+          <td>将全局显存中超出片上高速缓冲区（UB）容量的超大 Tensor，切分为若干适合单次核函数与单块缓存处理的瓦片（Tile）的数学算法。</td>
+        </tr>
+        <tr>
+          <td><strong>TPipe & TQue</strong><br><small>管道与消息队列</small></td>
+          <td>Ascend C 基础管道抽象</td>
+          <td>Ascend C 提供的片上数据流管理机制。开发者通过队列在 `CopyIn`、`Compute`、`CopyOut` 之间传递临时缓存指针，硬件自动完成同步与乱序隐藏。</td>
+        </tr>
+      </tbody>
+    </table>
+  </main>
 
   <footer class="lesson-footer">
-    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; flex-wrap: wrap; gap: 0.5rem;">
       <a href="#" data-smart-back="../index.html" class="flow-btn">← 返回刚才的学习页面</a>
       <a href="../index.html" class="flow-btn">📋 课程主页</a>
       <a href="./architecture-cheatsheet.html" class="flow-btn">查看架构速查图 →</a>

@@ -1,29 +1,82 @@
 /* 
  * Huawei CANN & Ascend C Teaching Workspace Stylesheet
  * Inspired by Edward Tufte: high data-ink ratio, readable typography, margin notes, print-ready.
+ * Modern Web Best Practices: Top Layer Dialog, Cross-Document View Transitions,
+ * light-dark() Color Scheme, Text-wrap balance/pretty, and Scrollbar-gutter stability.
  */
 
+/* ==========================================================================
+   1. Cross-Document View Transitions (MPA Smooth Transitions)
+   ========================================================================== */
+@media (prefers-reduced-motion: no-preference) {
+  @view-transition {
+    navigation: auto;
+  }
+}
+
+::view-transition-old(root) {
+  animation: 0.2s ease-in both vt-fade-out;
+}
+::view-transition-new(root) {
+  animation: 0.25s ease-out both vt-fade-in;
+}
+
+@keyframes vt-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+@keyframes vt-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.course-nav {
+  view-transition-name: course-nav;
+}
+
+/* ==========================================================================
+   2. Design Tokens & Modern Color Scheme (light-dark)
+   ========================================================================== */
 :root {
-  --bg: #fffff8;
-  --surface: #f7f6f0;
-  --surface-accent: #eef2f5;
-  --ink: #111111;
-  --ink-muted: #555555;
-  --accent: #a61c1c;       /* Tufte crimson / Huawei subtle red */
-  --accent-blue: #1f4e78;  /* Architecture blue */
-  --border: #d8d6ce;
-  --success-bg: #edf7ed;
-  --success-ink: #1e4620;
-  --success-border: #81c784;
-  --error-bg: #fdeded;
-  --error-ink: #5f2120;
-  --error-border: #e57373;
-  --code-bg: #f2f0e8;
+  color-scheme: light dark;
+
+  /* Semantic surface and text tokens with light-dark() */
+  --bg: light-dark(#fffff8, #141517);
+  --surface: light-dark(#f7f6f0, #1c1e22);
+  --surface-accent: light-dark(#eef2f5, #222933);
+  --card-bg: light-dark(#ffffff, #22252b);
+  --ink: light-dark(#111111, #e3e6eb);
+  --ink-muted: light-dark(#555555, #9aa0a6);
+  --accent: light-dark(#a61c1c, #ff6b6b);       /* Tufte crimson / Huawei subtle red */
+  --accent-blue: light-dark(#1f4e78, #58a6ff);  /* Architecture blue */
+  --border: light-dark(#d8d6ce, #373b42);
+
+  --success-bg: light-dark(#edf7ed, #142e1b);
+  --success-ink: light-dark(#1e4620, #7ee787);
+  --success-border: light-dark(#81c784, #2ea043);
+
+  --error-bg: light-dark(#fdeded, #3b1818);
+  --error-ink: light-dark(#5f2120, #f85149);
+  --error-border: light-dark(#e57373, #da3633);
+
+  --code-bg: light-dark(#f2f0e8, #282c34);
+
   --font-serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, "Songti SC", "Noto Serif CJK SC", serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Helvetica Neue", sans-serif;
   --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+/* User manual override support */
+html[data-theme="light"] {
+  color-scheme: light;
+}
+html[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* ==========================================================================
+   3. Base Layout & Modern Typography
+   ========================================================================== */
 * {
   box-sizing: border-box;
 }
@@ -32,6 +85,7 @@ html {
   font-size: 17px;
   background-color: var(--bg);
   color: var(--ink);
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -39,13 +93,34 @@ body {
   line-height: 1.72;
   max-width: 920px;
   margin: 0 auto;
-  padding: 2.5rem 2rem 5rem;
+  padding: clamp(1.5rem, 4vw, 2.5rem) clamp(1rem, 3vw, 2rem) 5rem;
+}
+
+/* Accessibility: Skip Link */
+.skip-link {
+  position: absolute;
+  top: -9999px;
+  left: 1rem;
+  background: var(--accent-blue);
+  color: #ffffff !important;
+  padding: 0.55rem 1.1rem;
+  z-index: 100000;
+  font-family: var(--font-sans);
+  font-size: 0.88rem;
+  font-weight: 600;
+  border-radius: 4px;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  transition: top 0.15s ease;
+}
+.skip-link:focus {
+  top: 1rem;
 }
 
 /* Top Navigation / Breadcrumb */
 .course-nav {
   font-family: var(--font-sans);
-  font-size: 0.82rem;
+  font-size: 0.84rem;
   color: var(--ink-muted);
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.75rem;
@@ -54,13 +129,15 @@ body {
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
 }
 
 .course-nav a {
   color: var(--accent-blue);
   text-decoration: none;
-  margin-left: 1rem;
+  margin-left: 0.85rem;
+  display: inline-flex;
+  align-items: center;
 }
 
 .course-nav a:first-child {
@@ -69,6 +146,36 @@ body {
 
 .course-nav a:hover {
   text-decoration: underline;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink);
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 32px;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.theme-toggle-btn:hover {
+  background: var(--surface-accent);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
 }
 
 .badge {
@@ -85,13 +192,14 @@ body {
   color: var(--accent);
 }
 
-/* Headings */
+/* Headings with text-wrap: balance */
 h1 {
   font-weight: 400;
-  font-size: 2.1rem;
+  font-size: clamp(1.75rem, 3.5vw, 2.15rem);
   line-height: 1.25;
   margin: 0.4rem 0 0.6rem;
   color: var(--ink);
+  text-wrap: balance;
 }
 
 .subtitle {
@@ -100,6 +208,7 @@ h1 {
   font-style: italic;
   margin-top: 0;
   margin-bottom: 2rem;
+  text-wrap: pretty;
 }
 
 h2 {
@@ -110,6 +219,7 @@ h2 {
   margin-bottom: 0.8rem;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.25rem;
+  text-wrap: balance;
 }
 
 h3 {
@@ -118,11 +228,14 @@ h3 {
   font-weight: 600;
   margin-top: 1.6rem;
   margin-bottom: 0.5rem;
+  text-wrap: balance;
 }
 
 p {
   margin-top: 0;
   margin-bottom: 1.15rem;
+  text-wrap: pretty;
+  overflow-wrap: break-word;
 }
 
 a {
@@ -151,10 +264,12 @@ pre {
   padding: 1.1rem 1.3rem;
   border-radius: 5px;
   overflow-x: auto;
+  overscroll-behavior: contain;
   font-family: var(--font-mono);
   font-size: 0.84rem;
   line-height: 1.55;
   margin: 1.2rem 0 1.5rem;
+  border: 1px solid var(--border);
 }
 
 pre code {
@@ -171,6 +286,7 @@ pre code {
   padding: 0.9rem 1.2rem;
   margin: 1.25rem 0;
   font-size: 0.94rem;
+  border-radius: 0 4px 4px 0;
 }
 
 .margin-note strong {
@@ -184,16 +300,17 @@ pre code {
   padding: 0.9rem 1.2rem;
   margin: 1.4rem 0;
   font-size: 0.95rem;
+  border-radius: 0 4px 4px 0;
 }
 
 /* Architecture Diagram Container */
 .diagram-box {
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 1.5rem;
   margin: 1.5rem 0;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .diagram-caption {
@@ -225,13 +342,14 @@ pre code {
   font-family: var(--font-sans);
   font-size: 0.88rem;
   font-weight: 600;
-  padding: 0.48rem 0.95rem;
+  padding: 0.5rem 0.95rem;
   border: 1px solid var(--accent-blue);
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--accent-blue);
   border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
+  min-height: 40px;
 }
 
 .sim-btn:hover, .sim-btn.active {
@@ -247,7 +365,7 @@ pre code {
 }
 
 .sim-node {
-  background: #ffffff;
+  background: var(--card-bg);
   border: 2px solid var(--border);
   border-radius: 6px;
   padding: 0.9rem;
@@ -255,17 +373,19 @@ pre code {
   transition: all 0.25s ease;
 }
 
-.sim-node.active-node {
+.sim-node.active-node,
+.sim-node[aria-current="step"] {
   border-color: var(--accent);
-  background: #fff8f6;
+  background: var(--surface-accent);
   transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(166, 28, 28, 0.12);
+  box-shadow: 0 4px 10px rgba(166, 28, 28, 0.15);
 }
 
 .sim-node-title {
   font-weight: 700;
   font-size: 0.95rem;
   margin-bottom: 0.3rem;
+  text-wrap: balance;
 }
 
 .sim-node-sub {
@@ -274,11 +394,57 @@ pre code {
 }
 
 .sim-status {
-  background: #ffffff;
+  background: var(--card-bg);
   border-left: 4px solid var(--accent-blue);
-  padding: 0.75rem 1rem;
+  padding: 0.85rem 1rem;
   font-size: 0.9rem;
   min-height: 3.4rem;
+  border-radius: 0 4px 4px 0;
+}
+
+/* Lesson Cards on Index */
+.lesson-card {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.2rem 1.4rem;
+  margin: 1rem 0;
+  background: var(--card-bg);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.lesson-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+.lesson-card a {
+  font-size: 1.15rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--ink);
+}
+.lesson-card a:hover {
+  color: var(--accent);
+}
+.lesson-meta {
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  color: var(--ink-muted);
+  margin-top: 0.4rem;
+  text-wrap: pretty;
+}
+.tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  margin-right: 0.4rem;
+  color: var(--accent-blue);
+  font-weight: 600;
+}
+.tag-upcoming {
+  color: var(--ink-muted);
+  border-style: dashed;
 }
 
 /* Quiz Widget */
@@ -307,29 +473,34 @@ pre code {
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 0.8rem;
+  text-wrap: balance;
 }
 
 .quiz-options {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.55rem;
 }
 
 .quiz-option {
   font-family: var(--font-mono);
   font-size: 0.9rem;
   text-align: left;
-  padding: 0.65rem 0.95rem;
-  background: #ffffff;
+  padding: 0.75rem 1rem;
+  background: var(--card-bg);
   border: 1px solid var(--border);
+  color: var(--ink);
   border-radius: 4px;
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
 }
 
 .quiz-option:hover {
   border-color: var(--accent-blue);
-  background: #f9fbfd;
+  background: var(--surface-accent);
 }
 
 .quiz-option.correct {
@@ -349,7 +520,7 @@ pre code {
   margin-top: 0.65rem;
   font-family: var(--font-sans);
   font-size: 0.88rem;
-  padding: 0.6rem 0.85rem;
+  padding: 0.65rem 0.9rem;
   border-radius: 4px;
   display: none;
 }
@@ -376,9 +547,18 @@ table {
   font-size: 0.92rem;
 }
 
+caption {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.92rem;
+  text-align: left;
+  margin-bottom: 0.5rem;
+  color: var(--ink-muted);
+}
+
 th, td {
   text-align: left;
-  padding: 0.6rem 0.8rem;
+  padding: 0.65rem 0.85rem;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
@@ -387,6 +567,7 @@ th {
   font-family: var(--font-sans);
   font-weight: 600;
   border-bottom: 2px solid var(--ink);
+  text-wrap: balance;
 }
 
 /* Footer / Teacher Reminder */
@@ -399,8 +580,8 @@ th {
 }
 
 .teacher-callout {
-  background: #fff9eb;
-  border: 1px solid #e6d09c;
+  background: var(--surface-accent);
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 1rem 1.25rem;
   margin-bottom: 1.8rem;
@@ -423,13 +604,14 @@ th {
   padding: 0.7rem 1.1rem;
   border-radius: 6px;
   border: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--card-bg);
   color: var(--ink);
   text-decoration: none;
   font-family: var(--font-sans);
   font-size: 0.88rem;
   font-weight: 500;
   transition: all 0.15s ease;
+  min-height: 44px;
 }
 
 .flow-btn:hover {
@@ -452,7 +634,7 @@ th {
 
 .flow-btn.disabled,
 .flow-btn.upcoming {
-  background: #f7f6f0;
+  background: var(--surface);
   color: var(--ink-muted);
   border-style: dashed;
   cursor: not-allowed;
@@ -463,9 +645,9 @@ th {
 .term-chip {
   display: inline-block;
   cursor: pointer;
-  padding: 0.05rem 0.35rem;
+  padding: 0.1rem 0.4rem;
   margin: 0 0.15rem;
-  background: #eef3f7;
+  background: var(--surface-accent);
   border-radius: 4px;
   border-bottom: 2px dotted var(--accent-blue);
   color: var(--accent-blue);
@@ -476,8 +658,8 @@ th {
 }
 
 .term-chip:hover {
-  background: #ddeaf3;
-  color: #0f2c46;
+  background: var(--surface);
+  color: var(--accent);
 }
 
 /* Reference Action Top/Bottom Bar */
@@ -494,50 +676,78 @@ th {
   font-size: 0.88rem;
 }
 
-/* Side Drawer Styles (Non-intrusive Reference Inspector) */
-body.drawer-locked {
-  overflow: hidden;
-}
-
-.drawer-backdrop {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(17, 17, 17, 0.4);
-  backdrop-filter: blur(2px);
-  z-index: 998;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease, visibility 0.2s ease;
-}
-
-.drawer-backdrop.open {
-  opacity: 1;
-  visibility: visible;
-}
-
-.drawer-panel {
+/* ==========================================================================
+   4. Native HTML <dialog> Side Drawer & Top Layer Transitions
+   ========================================================================== */
+dialog.drawer-dialog {
   position: fixed;
   top: 0;
   right: 0;
-  width: 480px;
+  margin: 0;
+  width: 500px;
   max-width: 92vw;
-  height: 100vh;
-  background: #fcfbf7;
+  height: 100dvh;
+  max-height: 100dvh;
+  border: none;
   border-left: 1px solid var(--border);
-  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12);
-  z-index: 999;
+  background: var(--surface);
+  box-shadow: -6px 0 24px rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
-  transform: translateX(100%);
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   font-family: var(--font-sans);
+  box-sizing: border-box;
+  padding: 0;
+  overscroll-behavior: contain;
+  transform: translateX(100%);
+  color: var(--ink);
+
+  /* MANDATORY: transition display and overlay for top-layer elements */
+  transition-property: transform, display, overlay;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-behavior: allow-discrete;
 }
 
-.drawer-panel.open {
+dialog.drawer-dialog[open] {
   transform: translateX(0);
+
+  @starting-style {
+    transform: translateX(100%);
+  }
+}
+
+/* Top Layer Backdrop transition */
+dialog.drawer-dialog::backdrop {
+  background-color: rgba(17, 17, 17, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, display, overlay;
+  transition-duration: 0.25s;
+  transition-behavior: allow-discrete;
+}
+
+dialog.drawer-dialog[open]::backdrop {
+  background-color: rgba(17, 17, 17, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+
+  @starting-style {
+    background-color: rgba(17, 17, 17, 0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.drawer-dialog {
+    transform: none;
+    transition-duration: 0.1s;
+  }
+  dialog.drawer-dialog[open] {
+    @starting-style {
+      transform: none;
+    }
+  }
 }
 
 .drawer-header {
@@ -546,7 +756,7 @@ body.drawer-locked {
   align-items: center;
   padding: 0.85rem 1.1rem;
   border-bottom: 1px solid var(--border);
-  background: #ffffff;
+  background: var(--card-bg);
 }
 
 .drawer-tabs {
@@ -558,12 +768,13 @@ body.drawer-locked {
   background: transparent;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 0.35rem 0.65rem;
+  padding: 0.4rem 0.7rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--ink-muted);
   cursor: pointer;
   transition: all 0.15s ease;
+  min-height: 36px;
 }
 
 .drawer-tab:hover {
@@ -584,10 +795,11 @@ body.drawer-locked {
 }
 
 .drawer-external-link {
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   color: var(--accent-blue);
   text-decoration: none;
   font-weight: 500;
+  padding: 0.3rem 0.5rem;
 }
 
 .drawer-external-link:hover {
@@ -597,32 +809,38 @@ body.drawer-locked {
 .drawer-close-btn {
   background: transparent;
   border: none;
-  font-size: 1.1rem;
+  font-size: 1.25rem;
   line-height: 1;
   color: var(--ink-muted);
   cursor: pointer;
-  padding: 0.3rem 0.5rem;
+  padding: 0.4rem 0.6rem;
   border-radius: 4px;
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .drawer-close-btn:hover {
-  background: #eeeeee;
+  background: var(--border);
   color: var(--ink);
 }
 
 .drawer-search-bar {
   padding: 0.65rem 1.1rem;
-  background: #f7f6f0;
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
 
 .drawer-search-bar input {
   width: 100%;
-  padding: 0.45rem 0.75rem;
+  padding: 0.5rem 0.75rem;
   font-size: 0.86rem;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: #ffffff;
+  background: var(--card-bg);
+  color: var(--ink);
   outline: none;
   box-sizing: border-box;
 }
@@ -634,6 +852,7 @@ body.drawer-locked {
 .drawer-body {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 1rem 1.2rem;
 }
 
@@ -656,6 +875,7 @@ body.drawer-locked {
   margin-bottom: 0.5rem;
   border-bottom: 1px solid var(--border);
   padding-bottom: 0.25rem;
+  text-wrap: balance;
 }
 
 .drawer-term-list {
@@ -665,11 +885,11 @@ body.drawer-locked {
 }
 
 .drawer-term-item {
-  background: #ffffff;
+  background: var(--card-bg);
   border: 1px solid var(--border);
   border-radius: 5px;
   padding: 0.75rem 0.9rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
 }
 
 .drawer-term-header {
@@ -703,18 +923,26 @@ body.drawer-locked {
 }
 
 .drawer-term-desc {
-  font-size: 0.83rem;
+  font-size: 0.84rem;
   line-height: 1.55;
-  color: #333333;
+  color: var(--ink);
+  text-wrap: pretty;
+  overflow-wrap: break-word;
 }
 
+/* ==========================================================================
+   5. Responsive Breakpoints & Print Media
+   ========================================================================== */
 @media (max-width: 640px) {
   .lesson-flow-nav {
     grid-template-columns: 1fr;
   }
-  .drawer-panel {
+  dialog.drawer-dialog {
     width: 100vw;
     max-width: 100vw;
+  }
+  .sim-stage-grid {
+    grid-template-columns: 1fr;
   }
 }
 
@@ -722,8 +950,10 @@ body.drawer-locked {
   body {
     padding: 0;
     font-size: 11pt;
+    background: #ffffff;
+    color: #000000;
   }
-  .sim-controls, .course-nav, .lesson-flow-nav, #site-drawer-container {
+  .sim-controls, .course-nav, .lesson-flow-nav, dialog.drawer-dialog, .skip-link {
     display: none !important;
   }
 }

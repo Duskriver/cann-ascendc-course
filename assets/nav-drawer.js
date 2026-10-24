@@ -1,239 +1,16 @@
 /**
- * Navigation Drawer & Smart Flow Manager for CANN Teaching Workspace
- * - Self-contained styles injection to guarantee zero-cache-glitch
- * - Robust side-drawer for Glossary & Architecture Cheatsheet
- * - Completely hidden from document flow when closed
+ * Navigation Drawer & Smart Theme Manager for CANN Teaching Workspace
+ * Modern Web Best Practices:
+ * - Native HTML5 <dialog> & Top Layer (Focus Trap, ESC dismiss, zero z-index conflicts)
+ * - @starting-style & transition-behavior: allow-discrete for smooth top-layer animations
+ * - Declarative closedby="any" with boundary coordinate fallback
+ * - Modern dark-mode-toggle with tri-state persistence & system divergence alignment
  */
 
 (function () {
   // Determine relative root path from current page location
   const isSubdir = window.location.pathname.includes('/lessons/') || window.location.pathname.includes('/reference/');
   const rootPrefix = isSubdir ? '../' : './';
-
-  // Inject styles directly to ensure drawer NEVER breaks due to cached/delayed external CSS
-  function ensureInjectedStyles() {
-    if (document.getElementById('site-drawer-injected-styles')) return;
-
-    const styleEl = document.createElement('style');
-    styleEl.id = 'site-drawer-injected-styles';
-    styleEl.textContent = `
-      /* Fail-safe Drawer Container: completely out of flow */
-      #site-drawer-container {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        z-index: 99990;
-        pointer-events: none;
-      }
-      #site-drawer-container.visible {
-        display: block;
-        pointer-events: auto;
-      }
-
-      body.drawer-locked {
-        overflow: hidden !important;
-      }
-
-      .drawer-backdrop {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background: rgba(17, 17, 17, 0.45);
-        backdrop-filter: blur(2px);
-        -webkit-backdrop-filter: blur(2px);
-        opacity: 0;
-        visibility: hidden;
-        transition: opacity 0.25s ease, visibility 0.25s ease;
-        z-index: 99991;
-      }
-      .drawer-backdrop.open {
-        opacity: 1;
-        visibility: visible;
-      }
-
-      .drawer-panel {
-        position: fixed;
-        top: 0;
-        right: 0;
-        width: 500px;
-        max-width: 90vw;
-        height: 100vh;
-        background: #fdfdfc;
-        border-left: 1px solid #d8d6ce;
-        box-shadow: -6px 0 24px rgba(0, 0, 0, 0.15);
-        z-index: 99992;
-        display: flex;
-        flex-direction: column;
-        transform: translateX(100%);
-        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-        box-sizing: border-box;
-      }
-      .drawer-panel.open {
-        transform: translateX(0);
-      }
-
-      .drawer-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.85rem 1.1rem;
-        border-bottom: 1px solid #d8d6ce;
-        background: #ffffff;
-      }
-
-      .drawer-tabs {
-        display: flex;
-        gap: 0.4rem;
-      }
-
-      .drawer-tab {
-        background: transparent;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        padding: 0.35rem 0.65rem;
-        font-size: 0.85rem;
-        font-weight: 600;
-        color: #555555;
-        cursor: pointer;
-        transition: all 0.15s ease;
-      }
-      .drawer-tab:hover {
-        color: #111111;
-        background: #f7f6f0;
-      }
-      .drawer-tab.active {
-        background: #f7f6f0;
-        border-color: #d8d6ce;
-        color: #1f4e78;
-      }
-
-      .drawer-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.6rem;
-      }
-
-      .drawer-external-link {
-        font-size: 0.8rem;
-        color: #1f4e78;
-        text-decoration: none;
-        font-weight: 500;
-      }
-      .drawer-external-link:hover {
-        text-decoration: underline;
-      }
-
-      .drawer-close-btn {
-        background: transparent;
-        border: none;
-        font-size: 1.15rem;
-        line-height: 1;
-        color: #555555;
-        cursor: pointer;
-        padding: 0.3rem 0.5rem;
-        border-radius: 4px;
-      }
-      .drawer-close-btn:hover {
-        background: #eeeeee;
-        color: #111111;
-      }
-
-      .drawer-search-bar {
-        padding: 0.65rem 1.1rem;
-        background: #f7f6f0;
-        border-bottom: 1px solid #d8d6ce;
-      }
-      .drawer-search-bar input {
-        width: 100%;
-        padding: 0.45rem 0.75rem;
-        font-size: 0.86rem;
-        border: 1px solid #d8d6ce;
-        border-radius: 4px;
-        background: #ffffff;
-        outline: none;
-        box-sizing: border-box;
-      }
-      .drawer-search-bar input:focus {
-        border-color: #1f4e78;
-      }
-
-      .drawer-body {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1rem 1.2rem;
-      }
-
-      .drawer-tab-pane {
-        display: none;
-      }
-      .drawer-tab-pane.active {
-        display: block;
-      }
-
-      .drawer-sec {
-        margin-bottom: 1.5rem;
-      }
-      .drawer-sec-title {
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #111111;
-        margin-bottom: 0.5rem;
-        border-bottom: 1px solid #d8d6ce;
-        padding-bottom: 0.25rem;
-      }
-
-      .drawer-term-list {
-        display: flex;
-        flex-direction: column;
-        gap: 0.85rem;
-      }
-      .drawer-term-item {
-        background: #ffffff;
-        border: 1px solid #d8d6ce;
-        border-radius: 5px;
-        padding: 0.75rem 0.9rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.03);
-      }
-      .drawer-term-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 0.2rem;
-      }
-      .drawer-term-title {
-        font-weight: 700;
-        font-size: 0.95rem;
-        color: #111111;
-      }
-      .drawer-term-badge {
-        font-size: 0.7rem;
-        padding: 0.1rem 0.4rem;
-        border-radius: 3px;
-        background: #f7f6f0;
-        border: 1px solid #d8d6ce;
-        color: #1f4e78;
-        font-weight: 600;
-      }
-      .drawer-term-en {
-        font-size: 0.76rem;
-        color: #555555;
-        font-style: italic;
-        margin-bottom: 0.4rem;
-      }
-      .drawer-term-desc {
-        font-size: 0.83rem;
-        line-height: 1.55;
-        color: #333333;
-      }
-    `;
-    document.head.appendChild(styleEl);
-  }
 
   // Core Glossary Data
   const GLOSSARY_DATA = [
@@ -343,20 +120,21 @@
     <div class="drawer-sec">
       <div class="drawer-sec-title">2. Vector 三阶段流水线</div>
       <table style="font-size:0.82rem; width:100%; margin:0.5rem 0; border-collapse:collapse;">
+        <caption>典型三阶段流水线调度表</caption>
         <thead>
-          <tr style="border-bottom:1px solid #d8d6ce;">
-            <th style="text-align:left; padding:4px;">阶段</th>
-            <th style="text-align:left; padding:4px;">单元</th>
-            <th style="text-align:left; padding:4px;">动作与典型 API</th>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th scope="col" style="text-align:left; padding:4px;">阶段</th>
+            <th scope="col" style="text-align:left; padding:4px;">单元</th>
+            <th scope="col" style="text-align:left; padding:4px;">动作与典型 API</th>
           </tr>
         </thead>
         <tbody>
-          <tr style="border-bottom:1px solid #eee;">
+          <tr style="border-bottom:1px solid var(--border);">
             <td style="padding:4px;"><strong>1. CopyIn</strong></td>
             <td style="padding:4px;">MTE2</td>
             <td style="padding:4px;">GM ➔ UB<br><code>DataCopy(inLocal, inGlobal)</code></td>
           </tr>
-          <tr style="border-bottom:1px solid #eee;">
+          <tr style="border-bottom:1px solid var(--border);">
             <td style="padding:4px;"><strong>2. Compute</strong></td>
             <td style="padding:4px;">Vector</td>
             <td style="padding:4px;">片上就地运算<br><code>Add(outLocal, inL1, inL2)</code></td>
@@ -372,7 +150,7 @@
 
     <div class="drawer-sec">
       <div class="drawer-sec-title">3. 核心准则备忘</div>
-      <ul style="font-size:0.82rem; padding-left:1.2rem; margin:0.3rem 0; line-height:1.6;">
+      <ul style="font-size:0.84rem; padding-left:1.2rem; margin:0.3rem 0; line-height:1.6;">
         <li><strong>32 字节对齐：</strong> 搬运地址与数据切分尽量保持 32 字节整数倍。</li>
         <li><strong>计算搬运重叠：</strong> 采用 Double Buffer（双缓冲）实现流水掩盖。</li>
         <li><strong>Vector 算子瓶颈：</strong> 大多为 Memory Bound，受限于 GM ↔ UB 带宽。</li>
@@ -380,49 +158,132 @@
     </div>
   `;
 
-  // Build and inject drawer markup
+  // =========================================================================
+  // Theme Manager: System-aware tri-state dark mode toggle
+  // =========================================================================
+  function initTheme() {
+    let metaEl = document.querySelector('meta[name="color-scheme"]');
+    if (!metaEl) {
+      metaEl = document.createElement('meta');
+      metaEl.name = 'color-scheme';
+      metaEl.content = 'light dark';
+      document.head.appendChild(metaEl);
+    }
+
+    function getSystemTheme() {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+
+    function getEffectiveTheme() {
+      const stored = localStorage.getItem('site-theme');
+      if (stored === 'dark' || stored === 'light') return stored;
+      return getSystemTheme();
+    }
+
+    function applyTheme(theme) {
+      if (theme === 'dark' || theme === 'light') {
+        document.documentElement.setAttribute('data-theme', theme);
+        metaEl.content = theme;
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        metaEl.content = 'light dark';
+      }
+      updateToggleButtons();
+    }
+
+    function toggleTheme() {
+      const effective = getEffectiveTheme();
+      const system = getSystemTheme();
+      // Target is opposite of currently rendered scheme
+      const target = effective === 'dark' ? 'light' : 'dark';
+
+      // If user toggles to match system, undo override and clear storage
+      if (target === system) {
+        localStorage.removeItem('site-theme');
+        applyTheme(null);
+      } else {
+        localStorage.setItem('site-theme', target);
+        applyTheme(target);
+      }
+    }
+
+    function updateToggleButtons() {
+      const btns = document.querySelectorAll('.theme-toggle-btn');
+      const effective = getEffectiveTheme();
+      const isManual = localStorage.getItem('site-theme') !== null;
+      btns.forEach((btn) => {
+        btn.innerHTML = effective === 'dark' ? '🌙 暗色' : '☀️ 浅色';
+        btn.title = `当前主题: ${effective}${isManual ? ' (已锁定)' : ' (跟随系统)'}，点击切换`;
+        btn.setAttribute('aria-label', `切换主题，当前为${effective === 'dark' ? '深色' : '浅色'}`);
+      });
+    }
+
+    // React to OS system changes if not manually overridden
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (localStorage.getItem('site-theme') === null) {
+        applyTheme(null);
+      }
+    });
+
+    // Apply stored on load
+    applyTheme(localStorage.getItem('site-theme'));
+
+    // Bind click events on any theme toggle button
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.theme-toggle-btn');
+      if (btn) {
+        e.preventDefault();
+        toggleTheme();
+      }
+    });
+  }
+
+  // =========================================================================
+  // Native <dialog> Side Drawer Implementation
+  // =========================================================================
   function initDrawer() {
-    ensureInjectedStyles();
-    if (document.getElementById('site-drawer-container')) return;
+    let dialog = document.getElementById('site-drawer-container');
+    if (dialog) return dialog;
 
-    const drawerWrap = document.createElement('div');
-    drawerWrap.id = 'site-drawer-container';
-    drawerWrap.innerHTML = `
-      <div class="drawer-backdrop" id="drawer-backdrop"></div>
-      <aside class="drawer-panel" id="drawer-panel" aria-label="全局辅助参考抽屉">
-        <header class="drawer-header">
-          <div class="drawer-tabs">
-            <button class="drawer-tab active" data-tab="glossary">📖 核心术语表</button>
-            <button class="drawer-tab" data-tab="architecture">🗺️ 架构速查图</button>
-          </div>
-          <div class="drawer-actions">
-            <a href="${rootPrefix}reference/glossary.html" class="drawer-external-link" id="drawer-standalone-link" title="全屏打开此参考页面" target="_blank" rel="noopener">全屏 ↗</a>
-            <button class="drawer-close-btn" id="drawer-close-btn" title="关闭抽屉 (Esc)">✕</button>
-          </div>
-        </header>
+    dialog = document.createElement('dialog');
+    dialog.id = 'site-drawer-container';
+    dialog.className = 'drawer-dialog';
+    dialog.setAttribute('closedby', 'any');
+    dialog.setAttribute('aria-label', '全局辅助参考抽屉');
 
-        <div class="drawer-search-bar" id="drawer-search-wrap">
-          <input type="text" id="drawer-search-input" placeholder="🔍 快速过滤术语 (如 UB, GM, Vector...)" />
+    dialog.innerHTML = `
+      <header class="drawer-header">
+        <div class="drawer-tabs">
+          <button class="drawer-tab active" data-tab="glossary">📖 核心术语表</button>
+          <button class="drawer-tab" data-tab="architecture">🗺️ 架构速查图</button>
         </div>
-
-        <div class="drawer-body">
-          <div class="drawer-tab-pane active" id="pane-glossary">
-            <div class="drawer-term-list" id="drawer-term-list"></div>
-          </div>
-          <div class="drawer-tab-pane" id="pane-architecture">
-            ${CHEATSHEET_HTML}
-          </div>
+        <div class="drawer-actions">
+          <a href="${rootPrefix}reference/glossary.html" class="drawer-external-link" id="drawer-standalone-link" title="全屏打开此参考页面" target="_blank" rel="noopener">全屏 ↗</a>
+          <button class="drawer-close-btn" id="drawer-close-btn" title="关闭抽屉 (Esc)" aria-label="关闭抽屉">✕</button>
         </div>
-      </aside>
+      </header>
+
+      <div class="drawer-search-bar" id="drawer-search-wrap">
+        <input type="text" id="drawer-search-input" placeholder="🔍 快速过滤术语 (如 UB, GM, Vector...)" aria-label="搜索术语" />
+      </div>
+
+      <div class="drawer-body">
+        <div class="drawer-tab-pane active" id="pane-glossary">
+          <div class="drawer-term-list" id="drawer-term-list"></div>
+        </div>
+        <div class="drawer-tab-pane" id="pane-architecture">
+          ${CHEATSHEET_HTML}
+        </div>
+      </div>
     `;
 
-    document.body.appendChild(drawerWrap);
+    document.body.appendChild(dialog);
 
     // Populate glossary
     renderGlossaryTerms('');
 
     // Search event
-    const searchInput = document.getElementById('drawer-search-input');
+    const searchInput = dialog.querySelector('#drawer-search-input');
     if (searchInput) {
       searchInput.addEventListener('input', (e) => {
         renderGlossaryTerms(e.target.value);
@@ -430,9 +291,9 @@
     }
 
     // Tab switching
-    const tabs = drawerWrap.querySelectorAll('.drawer-tab');
-    const panes = drawerWrap.querySelectorAll('.drawer-tab-pane');
-    const standaloneLink = document.getElementById('drawer-standalone-link');
+    const tabs = dialog.querySelectorAll('.drawer-tab');
+    const panes = dialog.querySelectorAll('.drawer-tab-pane');
+    const standaloneLink = dialog.querySelector('#drawer-standalone-link');
 
     tabs.forEach((tab) => {
       tab.addEventListener('click', () => {
@@ -441,10 +302,10 @@
         panes.forEach((p) => p.classList.remove('active'));
 
         tab.classList.add('active');
-        const targetPane = document.getElementById(`pane-${targetTab}`);
+        const targetPane = dialog.querySelector(`#pane-${targetTab}`);
         if (targetPane) targetPane.classList.add('active');
 
-        const searchWrap = document.getElementById('drawer-search-wrap');
+        const searchWrap = dialog.querySelector('#drawer-search-wrap');
         if (targetTab === 'glossary') {
           if (searchWrap) searchWrap.style.display = 'block';
           if (standaloneLink) {
@@ -461,18 +322,30 @@
       });
     });
 
-    // Close events
-    const closeBtn = document.getElementById('drawer-close-btn');
-    const backdrop = document.getElementById('drawer-backdrop');
+    // Close button
+    const closeBtn = dialog.querySelector('#drawer-close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => dialog.close());
+    }
 
-    if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
-    if (backdrop) backdrop.addEventListener('click', closeDrawer);
+    // Fallback light-dismiss for browsers without native <dialog closedby="any">
+    if (!('closedBy' in HTMLDialogElement.prototype)) {
+      dialog.addEventListener('click', (event) => {
+        if (event.target !== dialog) return;
+        const rect = dialog.getBoundingClientRect();
+        const isInside = (
+          rect.top <= event.clientY &&
+          event.clientY <= rect.top + rect.height &&
+          rect.left <= event.clientX &&
+          event.clientX <= rect.left + rect.width
+        );
+        if (!isInside) {
+          dialog.close();
+        }
+      });
+    }
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && isDrawerOpen()) {
-        closeDrawer();
-      }
-    });
+    return dialog;
   }
 
   function renderGlossaryTerms(filterKeyword) {
@@ -491,7 +364,7 @@
     });
 
     if (filtered.length === 0) {
-      termListEl.innerHTML = `<div style="text-align:center; padding:2rem; color:#888; font-size:0.85rem;">未找到与 "${filterKeyword}" 匹配的术语</div>`;
+      termListEl.innerHTML = `<div style="text-align:center; padding:2rem; color:var(--ink-muted); font-size:0.85rem;">未找到与 "${filterKeyword}" 匹配的术语</div>`;
       return;
     }
 
@@ -507,37 +380,24 @@
     `).join('');
   }
 
-  function isDrawerOpen() {
-    const panel = document.getElementById('drawer-panel');
-    return panel && panel.classList.contains('open');
-  }
-
   function openDrawer(tabName, termToHighlight) {
-    initDrawer();
-    const container = document.getElementById('site-drawer-container');
-    const panel = document.getElementById('drawer-panel');
-    const backdrop = document.getElementById('drawer-backdrop');
-    if (!container || !panel || !backdrop) return;
+    const dialog = initDrawer();
+    if (!dialog) return;
 
-    // Display the fixed container
-    container.classList.add('visible');
-
-    // Trigger sliding animation
-    requestAnimationFrame(() => {
-      panel.classList.add('open');
-      backdrop.classList.add('open');
-      document.body.classList.add('drawer-locked');
-    });
+    if (!dialog.open) {
+      // Use native Top Layer modal
+      dialog.showModal();
+    }
 
     // Switch tab if specified
     if (tabName) {
-      const tabBtn = document.querySelector(`.drawer-tab[data-tab="${tabName}"]`);
+      const tabBtn = dialog.querySelector(`.drawer-tab[data-tab="${tabName}"]`);
       if (tabBtn) tabBtn.click();
     }
 
-    // Scroll to term if specified
+    // Filter term if specified
     if (termToHighlight) {
-      const searchInput = document.getElementById('drawer-search-input');
+      const searchInput = dialog.querySelector('#drawer-search-input');
       if (searchInput) {
         searchInput.value = termToHighlight;
         renderGlossaryTerms(termToHighlight);
@@ -546,19 +406,10 @@
   }
 
   function closeDrawer() {
-    const container = document.getElementById('site-drawer-container');
-    const panel = document.getElementById('drawer-panel');
-    const backdrop = document.getElementById('drawer-backdrop');
-    if (panel) panel.classList.remove('open');
-    if (backdrop) backdrop.classList.remove('open');
-    document.body.classList.remove('drawer-locked');
-
-    // Hide container after animation finishes so it never captures clicks or takes space
-    setTimeout(() => {
-      if (container && !isDrawerOpen()) {
-        container.classList.remove('visible');
-      }
-    }, 280);
+    const dialog = document.getElementById('site-drawer-container');
+    if (dialog && dialog.open) {
+      dialog.close();
+    }
   }
 
   // Intercept navigation links with drawer triggers
@@ -597,16 +448,15 @@
   }
 
   // Auto initialize on DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      ensureInjectedStyles();
-      initDrawer();
-      bindDrawerTriggers();
-    });
-  } else {
-    ensureInjectedStyles();
-    initDrawer();
+  function initAll() {
+    initTheme();
     bindDrawerTriggers();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAll);
+  } else {
+    initAll();
   }
 
   // Expose global controller
