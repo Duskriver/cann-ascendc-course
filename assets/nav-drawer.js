@@ -325,25 +325,27 @@
     // Close button
     const closeBtn = dialog.querySelector('#drawer-close-btn');
     if (closeBtn) {
-      closeBtn.addEventListener('click', () => dialog.close());
-    }
-
-    // Fallback light-dismiss for browsers without native <dialog closedby="any">
-    if (!('closedBy' in HTMLDialogElement.prototype)) {
-      dialog.addEventListener('click', (event) => {
-        if (event.target !== dialog) return;
-        const rect = dialog.getBoundingClientRect();
-        const isInside = (
-          rect.top <= event.clientY &&
-          event.clientY <= rect.top + rect.height &&
-          rect.left <= event.clientX &&
-          event.clientX <= rect.left + rect.width
-        );
-        if (!isInside) {
-          dialog.close();
-        }
+      closeBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        dialog.close();
       });
     }
+
+    // Light-dismiss: click on backdrop outside dialog content box closes the drawer
+    dialog.addEventListener('click', (event) => {
+      if (event.target !== dialog) return;
+      const rect = dialog.getBoundingClientRect();
+      const isInside = (
+        rect.top <= event.clientY &&
+        event.clientY <= rect.top + rect.height &&
+        rect.left <= event.clientX &&
+        event.clientX <= rect.left + rect.width
+      );
+      if (!isInside) {
+        dialog.close();
+      }
+    });
 
     return dialog;
   }

@@ -692,27 +692,33 @@ dialog.drawer-dialog {
   border-left: 1px solid var(--border);
   background: var(--surface);
   box-shadow: -6px 0 24px rgba(0, 0, 0, 0.2);
-  display: flex;
   flex-direction: column;
   font-family: var(--font-sans);
   box-sizing: border-box;
   padding: 0;
   overscroll-behavior: contain;
-  transform: translateX(100%);
   color: var(--ink);
 
+  /* Closed/Exit state: hidden and translated off-screen */
+  display: none;
+  transform: translateX(100%);
+  opacity: 0;
+
   /* MANDATORY: transition display and overlay for top-layer elements */
-  transition-property: transform, display, overlay;
+  transition-property: transform, opacity, display, overlay;
   transition-duration: 0.25s;
   transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
   transition-behavior: allow-discrete;
 }
 
 dialog.drawer-dialog[open] {
+  display: flex;
   transform: translateX(0);
+  opacity: 1;
 
   @starting-style {
     transform: translateX(100%);
+    opacity: 0;
   }
 }
 
