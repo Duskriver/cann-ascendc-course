@@ -937,8 +937,851 @@ dialog.drawer-dialog[open]::backdrop {
 }
 
 /* ==========================================================================
-   5. Responsive Breakpoints & Print Media
+   5. Interactive Diagrams, Animations & Zero-to-One Visual Components
    ========================================================================== */
+
+/* High-contrast focus ring per accessibility best practices */
+:where(a:any-link, button, [role="button"], input, .hw-node-btn, .term-hotspot):focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* 5.1 Zero-Background Analogy & CPU vs NPU Comparison */
+.analogy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 1.6rem;
+  font-family: var(--font-sans);
+}
+
+.analogy-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem 1.2rem;
+  position: relative;
+}
+
+.analogy-card.highlight-card {
+  border-color: var(--accent-blue);
+  background: var(--surface-accent);
+}
+
+.analogy-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.98rem;
+  margin-bottom: 0.55rem;
+}
+
+.analogy-pill {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 99px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-weight: 600;
+}
+
+.analogy-card.highlight-card .analogy-pill {
+  background: var(--accent-blue);
+  color: #ffffff;
+  border-color: var(--accent-blue);
+}
+
+/* Brick Mover Animation Track inside Analogy Card */
+.brick-demo {
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  padding: 0.65rem 0.8rem;
+  margin: 0.65rem 0;
+  font-size: 0.8rem;
+}
+
+.brick-lane {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.3rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.brick-box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.15rem 0.4rem;
+  border-radius: 3px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.brick-box.parallel {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--surface-accent);
+  @media (prefers-reduced-motion: no-preference) {
+    animation: pulse-parallel 2.2s ease-in-out infinite;
+  }
+}
+
+@keyframes pulse-parallel {
+  0%, 100% { transform: scale(1); opacity: 0.9; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+
+/* 5.2 CANN Full-Stack Interactive Bridge */
+.cann-stack-box {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin: 1.4rem 0;
+  font-family: var(--font-sans);
+}
+
+.stack-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.stack-layer-btn {
+  display: grid;
+  grid-template-columns: 170px 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  text-align: left;
+  padding: 0.7rem 1rem;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.stack-layer-btn:hover,
+.stack-layer-btn.active {
+  border-color: var(--accent-blue);
+  background: var(--surface-accent);
+  transform: translateX(3px);
+}
+
+.stack-layer-btn.is-ours {
+  border-left: 4px solid var(--accent);
+}
+
+.stack-layer-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.stack-layer-desc {
+  font-size: 0.83rem;
+  color: var(--ink-muted);
+}
+
+.stack-layer-code {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  background: var(--code-bg);
+  padding: 0.2rem 0.5rem;
+  border-radius: 3px;
+  color: var(--accent-blue);
+  white-space: nowrap;
+}
+
+.stack-arrow {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  line-height: 1;
+  user-select: none;
+}
+
+/* 5.3 Geometric Unit Visual Cards (Scalar 0D / Vector 1D / Cube 2D-3D) */
+.unit-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin: 1.3rem 0;
+  font-family: var(--font-sans);
+}
+
+.unit-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.unit-card-top {
+  margin-bottom: 0.8rem;
+}
+
+.unit-dim-tag {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.12rem 0.45rem;
+  border-radius: 3px;
+  background: var(--surface-accent);
+  color: var(--accent-blue);
+  margin-bottom: 0.35rem;
+}
+
+.unit-card h3 {
+  margin: 0.1rem 0 0.25rem;
+  font-size: 1.02rem;
+}
+
+.unit-role-sub {
+  font-size: 0.8rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 0.6rem;
+}
+
+.unit-visual-stage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.75rem;
+  min-height: 112px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.geo-row {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.geo-cell {
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  background: var(--card-bg);
+  border: 1.5px solid var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.geo-cell.scalar-cell {
+  width: 42px;
+  height: 32px;
+  border-color: #b45309;
+  color: #b45309;
+  background: light-dark(#fef3c7, #3b2a10);
+}
+
+.geo-cell.cube-cell {
+  width: 16px;
+  height: 16px;
+  border-color: var(--accent);
+  background: light-dark(#fee2e2, #3b1818);
+  color: var(--accent);
+  font-size: 0.55rem;
+}
+
+.cube-matrix-pair {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.cube-grid-4x4 {
+  display: grid;
+  grid-template-columns: repeat(4, 16px);
+  gap: 2px;
+}
+
+/* 5.4 Memory Wall: Warehouse (GM) vs Workbench (UB) Speed & Size Comparison */
+.memory-wall-box {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+  padding: 1.25rem 1.4rem;
+  margin: 1.5rem 0;
+  font-family: var(--font-sans);
+}
+
+.memory-compare-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 1rem 0;
+}
+
+.mem-tier-row {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 0.85rem 1rem;
+}
+
+.mem-tier-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.88rem;
+}
+
+.mem-bars-grid {
+  display: grid;
+  grid-template-columns: 72px 1fr 140px;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.78rem;
+  margin-top: 0.35rem;
+}
+
+.mem-bar-track {
+  height: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.mem-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+
+.mem-bar-fill.gm-cap { width: 96%; background: var(--accent-blue); }
+.mem-bar-fill.gm-spd { width: 8%; background: var(--accent); }
+.mem-bar-fill.ub-cap { width: 3%; min-width: 8px; background: var(--accent-blue); }
+.mem-bar-fill.ub-spd { width: 98%; background: var(--success-border); }
+
+/* 5.5 Interactive SVG Architecture Explorer */
+.arch-explorer {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.3rem;
+  margin: 1.5rem 0;
+  font-family: var(--font-sans);
+}
+
+.arch-quick-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.hw-node-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.38rem 0.75rem;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  min-height: 34px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.hw-node-btn:hover,
+.hw-node-btn.active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #ffffff;
+}
+
+.arch-svg-stage {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+.arch-svg {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  display: block;
+}
+
+.arch-svg .svg-hw-group {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.arch-svg .svg-hw-group rect.hw-rect {
+  transition: stroke-width 0.15s ease, stroke 0.15s ease;
+}
+
+.arch-svg .svg-hw-group:hover rect.hw-rect,
+.arch-svg .svg-hw-group.active-hw rect.hw-rect {
+  stroke: var(--accent);
+  stroke-width: 3px;
+}
+
+.arch-svg .flow-dash {
+  stroke-dasharray: 6 4;
+  @media (prefers-reduced-motion: no-preference) {
+    animation: dash-march 1.2s linear infinite;
+  }
+}
+
+@keyframes dash-march {
+  to {
+    stroke-dashoffset: -20;
+  }
+}
+
+.arch-detail-panel {
+  margin-top: 1rem;
+  background: var(--surface-accent);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-blue);
+  border-radius: 0 5px 5px 0;
+  padding: 0.95rem 1.15rem;
+  font-size: 0.88rem;
+}
+
+.arch-detail-title {
+  font-weight: 700;
+  font-size: 0.98rem;
+  color: var(--accent-blue);
+  margin-bottom: 0.35rem;
+}
+
+/* 5.6 Animated Dataflow & Code Sync Workbench */
+.pipeline-workbench {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.35rem;
+  margin: 1.6rem 0;
+  font-family: var(--font-sans);
+}
+
+.workbench-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+}
+
+.sim-play-btn {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 0.48rem 0.9rem;
+  border-radius: 4px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #ffffff;
+  cursor: pointer;
+  min-height: 40px;
+  transition: opacity 0.15s ease;
+}
+
+.sim-play-btn:hover {
+  opacity: 0.9;
+}
+
+.workbench-split {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: 1rem;
+  align-items: stretch;
+}
+
+/* Visual Chip Stage */
+.chip-stage {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.75rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.hw-zone {
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.85rem;
+  background: var(--surface);
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.hw-zone.zone-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(166, 28, 28, 0.15);
+}
+
+.hw-zone-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  margin-bottom: 0.45rem;
+}
+
+.tensor-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.3rem 0.5rem;
+  margin: 0.25rem 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  transition: border-color 0.25s ease, background-color 0.25s ease, transform 0.25s ease;
+}
+
+.tensor-row.row-highlight {
+  border-color: var(--accent-blue);
+  background: var(--surface-accent);
+  transform: scale(1.01);
+}
+
+.tensor-row.row-computed {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success-ink);
+}
+
+.tensor-vals {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.val-chip {
+  display: inline-block;
+  padding: 0.08rem 0.32rem;
+  border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-weight: 600;
+}
+
+/* MTE Bus Corridor between GM and UB */
+.mte-corridor {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--surface-accent);
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  font-size: 0.76rem;
+  text-align: center;
+}
+
+.mte-channel {
+  padding: 0.35rem 0.5rem;
+  border-radius: 4px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-weight: 600;
+  transition: background-color 0.25s ease, border-color 0.25s ease, color 0.25s ease, transform 0.25s ease;
+}
+
+.mte-channel.channel-active {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: #ffffff;
+  @media (prefers-reduced-motion: no-preference) {
+    transform: translateY(-2px);
+  }
+}
+
+/* Code Synchronizer Pane */
+.code-sync-pane {
+  background: #1d2021;
+  color: #ebdbb2;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.cpu-bad-box {
+  background: rgba(248, 81, 73, 0.12);
+  border: 1px solid rgba(248, 81, 73, 0.45);
+  border-radius: 4px;
+  padding: 0.5rem 0.65rem;
+  margin-bottom: 0.75rem;
+  color: #ffb4ab;
+  font-size: 0.74rem;
+}
+
+.ascend-code-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.sync-code-block {
+  padding: 0.45rem 0.6rem;
+  border-radius: 4px;
+  border-left: 3px solid transparent;
+  background: rgba(255, 255, 255, 0.03);
+  color: #a89984;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  cursor: pointer;
+}
+
+.sync-code-block.code-active {
+  background: rgba(88, 166, 255, 0.18);
+  border-left-color: #58a6ff;
+  color: #ffffff;
+  @media (prefers-reduced-motion: no-preference) {
+    transform: translateX(3px);
+  }
+}
+
+.sync-code-comment {
+  color: #8ec07c;
+  font-size: 0.72rem;
+  display: block;
+  margin-bottom: 0.15rem;
+}
+
+/* 5.7 Tiling & Pipeline Overlap Gantt Visualizer */
+.gantt-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 1.25rem;
+  margin: 1.4rem 0;
+  font-family: var(--font-sans);
+}
+
+.gantt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.gantt-mode-btns {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.gantt-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin-bottom: 0.9rem;
+}
+
+.gantt-row {
+  display: grid;
+  grid-template-columns: 145px 1fr;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gantt-row-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.gantt-slots {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 4px;
+  background: var(--surface);
+  padding: 4px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+}
+
+.gantt-slot {
+  height: 30px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: transparent;
+  color: var(--ink-muted);
+  border: 1px dashed var(--border);
+  transition: transform 0.25s ease, background-color 0.25s ease, opacity 0.25s ease;
+}
+
+.gantt-slot.tile-0 {
+  background: light-dark(#dbeafe, #1e3a5f);
+  border: 1px solid var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+.gantt-slot.tile-1 {
+  background: light-dark(#fef3c7, #452c0c);
+  border: 1px solid #d97706;
+  color: light-dark(#b45309, #fbbf24);
+}
+
+.gantt-slot.tile-2 {
+  background: light-dark(#dcfce7, #143821);
+  border: 1px solid var(--success-border);
+  color: var(--success-ink);
+}
+
+/* 5.8 Interactive npu-smi Terminal Output Explorer */
+.term-explorer {
+  background: #16181d;
+  color: #d8dee9;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+  margin: 1.3rem 0;
+  font-family: var(--font-mono);
+}
+
+.term-topbar {
+  background: #21252b;
+  padding: 0.55rem 0.9rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #333842;
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: #9da5b4;
+}
+
+.term-dots {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.term-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #4b5263;
+}
+
+.term-body {
+  padding: 1rem 1.1rem;
+  font-size: 0.78rem;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+
+.term-hotspot {
+  display: inline-block;
+  background: rgba(88, 166, 255, 0.16);
+  border: 1px solid #58a6ff;
+  color: #79c0ff;
+  border-radius: 3px;
+  padding: 0 0.3rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 700;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.term-hotspot:hover,
+.term-hotspot.active {
+  background: #58a6ff;
+  color: #0d1117;
+}
+
+.term-inspector {
+  background: #21252b;
+  border-top: 1px solid #333842;
+  padding: 0.85rem 1.1rem;
+  font-family: var(--font-sans);
+  font-size: 0.86rem;
+  color: #e6edf3;
+}
+
+/* ==========================================================================
+   6. Responsive Breakpoints & Print Media
+   ========================================================================== */
+@media (max-width: 760px) {
+  .unit-cards-grid,
+  .workbench-split {
+    grid-template-columns: 1fr;
+  }
+  .stack-layer-btn {
+    grid-template-columns: 1fr;
+    gap: 0.3rem;
+  }
+  .gantt-row {
+    grid-template-columns: 1fr;
+  }
+  .mem-bars-grid {
+    grid-template-columns: 65px 1fr;
+  }
+}
+
 @media (max-width: 640px) {
   .lesson-flow-nav {
     grid-template-columns: 1fr;
