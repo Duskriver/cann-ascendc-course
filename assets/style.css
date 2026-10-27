@@ -1927,3 +1927,328 @@ main section { scroll-margin-top: 1rem; }
     display: none !important;
   }
 }
+
+
+/* =========================================================================
+   Interactive Animation Enhancements (Lesson 0001 Visual Overhaul)
+   ========================================================================= */
+
+/* 1. Vector Addition Operator Playground */
+.operator-demo {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+  margin: 1.2rem 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.operator-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px dashed var(--border);
+}
+
+.operator-canvas {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 0.5rem 0;
+}
+
+.vector-block-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  max-width: 520px;
+}
+
+.vector-label {
+  width: 75px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--ink-muted);
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.vector-cells {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.vector-cell {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  padding: 0.55rem 0.2rem;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ink);
+  transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  position: relative;
+}
+
+.vector-cell.cell-x {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+  color: #2563eb;
+}
+
+.vector-cell.cell-y {
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.08);
+  color: #7c3aed;
+}
+
+.vector-cell.cell-z {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.vector-cell.anim-combine {
+  animation: pulseCombine 0.5s ease-in-out;
+}
+
+@keyframes pulseCombine {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.18); background: #fef08a; border-color: #eab308; }
+  100% { transform: scale(1); }
+}
+
+.operator-arrow-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  padding: 0.2rem 0.8rem;
+  background: var(--surface-accent);
+  border-radius: 20px;
+}
+
+/* 2. Host-Device PCIe Interaction Stage */
+.host-device-demo {
+  background: var(--card-bg);
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 1.2rem;
+  margin: 1.2rem 0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+.hd-stage {
+  display: grid;
+  grid-template-columns: 1fr 140px 1.2fr;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 680px) {
+  .hd-stage {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+.hd-entity {
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--surface);
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.hd-entity.active-entity {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 16px rgba(59, 130, 246, 0.25);
+  transform: translateY(-2px);
+}
+
+.hd-entity h4 {
+  margin: 0 0 0.35rem 0;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.hd-entity p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+.hd-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  margin-top: 0.45rem;
+  background: var(--surface-accent);
+  color: var(--ink-muted);
+}
+
+.hd-bus {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  position: relative;
+}
+
+.bus-wire {
+  width: 100%;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bus-packet {
+  position: absolute;
+  width: 24px;
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 3px;
+  box-shadow: 0 0 8px #3b82f6;
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.bus-packet.fly-forward {
+  animation: busFlyRight 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.bus-packet.fly-backward {
+  animation: busFlyLeft 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes busFlyRight {
+  0% { transform: translateX(-30px); opacity: 0; background: #3b82f6; box-shadow: 0 0 8px #3b82f6; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateX(140px); opacity: 0; }
+}
+
+@keyframes busFlyLeft {
+  0% { transform: translateX(140px); opacity: 0; background: #10b981; box-shadow: 0 0 8px #10b981; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translateX(-30px); opacity: 0; }
+}
+
+.bus-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+}
+
+/* 3. Fluid Flying Data Capsules in SandBox */
+.flying-capsule-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.moving-capsule {
+  position: absolute;
+  padding: 0.18rem 0.5rem;
+  border-radius: 12px;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  font-size: 0.78rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+  opacity: 0;
+}
+
+.moving-capsule.cap-copyin {
+  background: #2563eb;
+  color: #ffffff;
+  border: 1px solid #93c5fd;
+}
+
+.moving-capsule.cap-copyout {
+  background: #10b981;
+  color: #ffffff;
+  border: 1px solid #a7f3d0;
+}
+
+.vector-pulse-banner {
+  transition: all 0.3s ease;
+  border-radius: 4px;
+  padding: 0.35rem 0.5rem;
+}
+
+.vector-pulse-banner.pulse-active {
+  background: linear-gradient(90deg, rgba(234, 179, 8, 0.2), rgba(16, 185, 129, 0.25));
+  border: 1.5px solid #10b981 !important;
+  color: #047857 !important;
+  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
+  animation: vectorBeat 0.6s ease infinite alternate;
+}
+
+@keyframes vectorBeat {
+  0% { transform: scale(0.99); }
+  100% { transform: scale(1.02); }
+}
+
+/* 4. Gantt Timeline Playhead Scrubber */
+.gantt-play-ctrl {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.gantt-playhead-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #f59e0b;
+  box-shadow: 0 0 10px #f59e0b;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: left 0.4s ease, opacity 0.2s ease;
+}
+
+.gantt-slot.pulse-slot {
+  box-shadow: 0 0 12px var(--accent-blue) !important;
+  transform: scale(1.06) !important;
+  z-index: 5;
+  border-color: #ffffff !important;
+}

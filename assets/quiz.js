@@ -279,12 +279,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (vecEl) {
       vecEl.textContent = cfg.vectorStatus;
       vecEl.classList.toggle('row-computed', stepStr === '2');
+      vecEl.classList.toggle('pulse-active', stepStr === '2');
     }
 
     renderChips('vals-x-local', cfg.xLocalVals);
     renderChips('vals-y-local', cfg.yLocalVals);
     renderChips('vals-z-local', cfg.zLocalVals);
     renderChips('vals-z-gm', cfg.zGmVals);
+
+    // Dynamic Capsule Animation
+    triggerSandBoxFlyingCapsules(stepStr);
 
     if (xRow) xRow.classList.toggle('row-highlight', cfg.xLocalHighlight);
     if (yRow) yRow.classList.toggle('row-highlight', cfg.xLocalHighlight);
@@ -293,6 +297,71 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (statusBox) {
       statusBox.innerHTML = cfg.desc;
+    }
+  }
+
+  function triggerSandBoxFlyingCapsules(stepStr) {
+    const stage = document.querySelector('.chip-stage');
+    if (!stage) return;
+    let layer = stage.querySelector('.flying-capsule-layer');
+    if (!layer) {
+      layer = document.createElement('div');
+      layer.className = 'flying-capsule-layer';
+      stage.appendChild(layer);
+    }
+    layer.innerHTML = '';
+
+    if (stepStr === '1') {
+      // GM -> UB CopyIn animation
+      const gmRow = document.getElementById('sim-gm-zone');
+      const ubRow = document.getElementById('sim-ub-zone');
+      if (!gmRow || !ubRow) return;
+      
+      const values = ['[10, 20, 30, 40]', '[1, 2, 3, 4]'];
+      values.forEach((v, i) => {
+        const cap = document.createElement('div');
+        cap.className = 'moving-capsule cap-copyin';
+        cap.textContent = v;
+        cap.style.top = `${35 + i * 36}px`;
+        cap.style.left = '40px';
+        layer.appendChild(cap);
+
+        requestAnimationFrame(() => {
+          cap.style.opacity = '1';
+          cap.style.transform = `translateY(${190 + i * 15}px) scale(1.05)`;
+        });
+
+        setTimeout(() => {
+          cap.style.opacity = '0';
+          setTimeout(() => cap.remove(), 350);
+        }, 650);
+      });
+    } else if (stepStr === '2') {
+      // Compute shake animation on UB
+      const zLocalRow = document.getElementById('row-z-local');
+      if (zLocalRow) {
+        zLocalRow.classList.remove('anim-combine');
+        void zLocalRow.offsetWidth;
+        zLocalRow.classList.add('anim-combine');
+      }
+    } else if (stepStr === '3') {
+      // UB -> GM CopyOut animation
+      const cap = document.createElement('div');
+      cap.className = 'moving-capsule cap-copyout';
+      cap.textContent = '[11, 22, 33, 44]';
+      cap.style.top = '280px';
+      cap.style.left = '50px';
+      layer.appendChild(cap);
+
+      requestAnimationFrame(() => {
+        cap.style.opacity = '1';
+        cap.style.transform = 'translateY(-175px) scale(1.05)';
+      });
+
+      setTimeout(() => {
+        cap.style.opacity = '0';
+        setTimeout(() => cap.remove(), 350);
+      }, 650);
     }
   }
 
@@ -527,4 +596,163 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     });
   }
+
+  // =========================================================================
+  // 8. Interactive Vector Operator Playground (Section 1)
+  // =========================================================================
+  function initOperatorDemo() {
+    const playBtn = document.getElementById('op-play-btn');
+    const resetBtn = document.getElementById('op-reset-btn');
+    const cellsZ = document.querySelectorAll('.vector-cell.cell-z');
+    const cellsX = document.querySelectorAll('.vector-cell.cell-x');
+    const cellsY = document.querySelectorAll('.vector-cell.cell-y');
+    const statusText = document.getElementById('op-status-text');
+    if (!playBtn || cellsZ.length === 0) return;
+
+    const results = ['11', '22', '33', '44'];
+    let timer = null;
+
+    function resetDemo() {
+      if (timer) clearInterval(timer);
+      cellsZ.forEach((c) => {
+        c.textContent = '?';
+        c.classList.remove('anim-combine');
+      });
+      cellsX.forEach((c) => c.classList.remove('anim-combine'));
+      cellsY.forEach((c) => c.classList.remove('anim-combine'));
+      if (statusText) statusText.innerHTML = '点击<strong>“演示相加”</strong>，直观观察 4 对数字如何一对一就地合成。';
+      playBtn.removeAttribute('disabled');
+    }
+
+    function runDemo() {
+      resetDemo();
+      playBtn.setAttribute('disabled', 'true');
+      let idx = 0;
+      if (statusText) statusText.innerHTML = '⚡ 向量计算单元工作中：逐位置并行相加...';
+
+      timer = setInterval(() => {
+        if (idx >= 4) {
+          clearInterval(timer);
+          if (statusText) statusText.innerHTML = '✅ <strong>相加完成：</strong> 对应位置相加生成结果向量 <code>z = [11, 22, 33, 44]</code>。';
+          playBtn.removeAttribute('disabled');
+          return;
+        }
+        cellsX[idx].classList.add('anim-combine');
+        cellsY[idx].classList.add('anim-combine');
+        cellsZ[idx].textContent = results[idx];
+        cellsZ[idx].classList.add('anim-combine');
+        idx++;
+      }, 350);
+    }
+
+    playBtn.addEventListener('click', runDemo);
+    if (resetBtn) resetBtn.addEventListener('click', resetDemo);
+  }
+  initOperatorDemo();
+
+  // =========================================================================
+  // 9. Host-Device PCIe Interaction (Section 2)
+  // =========================================================================
+  function initHostDeviceDemo() {
+    const triggerBtn = document.getElementById('hd-trigger-btn');
+    const packet = document.getElementById('bus-packet-indicator');
+    const hostBox = document.getElementById('hd-host-box');
+    const deviceBox = document.getElementById('hd-device-box');
+    const hdStatus = document.getElementById('hd-status-text');
+    if (!triggerBtn || !packet) return;
+
+    triggerBtn.addEventListener('click', () => {
+      triggerBtn.setAttribute('disabled', 'true');
+      packet.className = 'bus-packet';
+      if (hostBox) hostBox.classList.add('active-entity');
+      if (deviceBox) deviceBox.classList.remove('active-entity');
+      if (hdStatus) hdStatus.innerHTML = '① <strong>Host (CPU)</strong> 组织数据，下达计算任务指令...';
+
+      setTimeout(() => {
+        packet.classList.add('fly-forward');
+        if (hdStatus) hdStatus.innerHTML = '② 指令与地址信息沿 PCIe 总线高速发送到 <strong>Device</strong>...';
+      }, 400);
+
+      setTimeout(() => {
+        if (hostBox) hostBox.classList.remove('active-entity');
+        if (deviceBox) deviceBox.classList.add('active-entity');
+        if (hdStatus) hdStatus.innerHTML = '③ <strong>Device (NPU)</strong> 车间全速运转，专属计算单元并发完成加法...';
+      }, 1400);
+
+      setTimeout(() => {
+        packet.className = 'bus-packet fly-backward';
+        if (hdStatus) hdStatus.innerHTML = '④ 计算完成信号沿总线回弹给 Host。';
+      }, 2300);
+
+      setTimeout(() => {
+        if (deviceBox) deviceBox.classList.remove('active-entity');
+        triggerBtn.removeAttribute('disabled');
+        if (hdStatus) hdStatus.innerHTML = '✅ <strong>协同完毕：</strong> Host 统筹调度，Device 高效计算。';
+      }, 3100);
+    });
+  }
+  initHostDeviceDemo();
+
+  // =========================================================================
+  // 10. Gantt Timeline Playhead Scrubber (Optional C)
+  // =========================================================================
+  function initGanttPlayhead() {
+    const playGanttBtn = document.getElementById('gantt-play-btn');
+    const grid = document.querySelector('.gantt-grid');
+    if (!playGanttBtn || !grid) return;
+
+    let line = grid.querySelector('.gantt-playhead-line');
+    if (!line) {
+      line = document.createElement('div');
+      line.className = 'gantt-playhead-line';
+      grid.appendChild(line);
+    }
+
+    let timer = null;
+    playGanttBtn.addEventListener('click', () => {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+        playGanttBtn.textContent = '▶ 动态跑时间轴 (T1~T5)';
+        line.style.opacity = '0';
+        document.querySelectorAll('.gantt-slot').forEach((s) => s.classList.remove('pulse-slot'));
+        return;
+      }
+
+      playGanttBtn.textContent = '⏸ 停止时间轴';
+      line.style.opacity = '1';
+      let beat = 0;
+      const totalBeats = 5;
+
+      function highlightBeat(b) {
+        document.querySelectorAll('.gantt-slot').forEach((s) => s.classList.remove('pulse-slot'));
+        const rows = document.querySelectorAll('.gantt-slots');
+        rows.forEach((r) => {
+          const slot = r.children[b];
+          if (slot && slot.textContent.trim() && slot.textContent.trim() !== '·') {
+            slot.classList.add('pulse-slot');
+          }
+        });
+        const pct = (b / (totalBeats - 0.2)) * 80 + 12;
+        line.style.left = `${pct}%`;
+      }
+
+      highlightBeat(0);
+      timer = setInterval(() => {
+        beat++;
+        if (beat >= totalBeats) {
+          clearInterval(timer);
+          timer = null;
+          playGanttBtn.textContent = '▶ 动态跑时间轴 (T1~T5)';
+          setTimeout(() => {
+            line.style.opacity = '0';
+            document.querySelectorAll('.gantt-slot').forEach((s) => s.classList.remove('pulse-slot'));
+          }, 800);
+          return;
+        }
+        highlightBeat(beat);
+      }, 900);
+    });
+  }
+  initGanttPlayhead();
 });
