@@ -37,7 +37,7 @@
       margin: 0.2rem 0;
     }
   </style>
-  <script src="../assets/nav-drawer.js?v=20261025c" defer></script>
+  <script src="../assets/nav-drawer.js?v=20261027b" defer></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">跳至主要内容</a>
@@ -63,13 +63,14 @@
     </div>
 
     <h1>达芬奇 AI Core 硬件模型与流水线速查</h1>
-    <p class="subtitle">算子执行视角下的昇腾片上存储层级与计算流水线拓扑。</p>
+    <p class="subtitle">以本课典型 Ascend C 向量加法为例查阅数据流；完整架构与优化内容在后续课展开。</p>
 
     <div class="mission-tie">
-      <strong>🎯 算子开发第一法则：</strong> 昇腾 AI Core 的计算引擎（Vector / Cube）<strong>绝不直接访问片外 Global Memory</strong>。所有算子代码的本质，就是组织<strong>搬入 (CopyIn) ➔ 计算 (Compute) ➔ 搬出 (CopyOut)</strong> 三大阶段的高速吞吐。
+      <strong>🎯 本课的向量加法：</strong> 计算接口使用 UB 中的数据，所以先将输入从 GM 搬入 UB，再计算并写回 GM，即<strong>搬入 (CopyIn) ➔ 计算 (Compute) ➔ 写回 (CopyOut)</strong>。这是一种典型编程范式；不同芯片和接口的能力以对应文档为准。
     </div>
 
-    <h2>1. 硬件拓扑与存储层级图</h2>
+    <h2>1. 数据流与存储层级（简化示意）</h2>
+    <p>下图按职责说明数据流，不表示真实芯片布局。不同型号可能采用不同的单元组织方式；Cube 的矩阵数据通路在此省略。</p>
     <div class="diagram-box">
       <pre style="background:#1e1e1e; color:#dcdcdc; font-size:0.86rem; border-radius:6px; padding:1.2rem; overflow-x:auto;">
 +---------------------------------------------------------------------------------------------+
@@ -77,12 +78,12 @@
 |   - 运行通用操作系统 (Linux)，负责 Python/PyTorch 框架解析与图调度                          |
 |   - 通过 AscendCL (ACL) 发起核函数执行请求 (Kernel Launch) 与 Tiling 参数下发               |
 +---------------------------------------------------------------------------------------------+
-                                       │ PCIe / HCCS 总线
+                                       │ 任务下发 / 主机与设备间传输
                                        ▼
 +---------------------------------------------------------------------------------------------+
 | DEVICE (昇腾 NPU)                                                                           |
 |                                                                                             |
-|   [ Global Memory (GM / HBM) ]  容量: 16GB ~ 96GB，延迟相对较高 (数百周期)                  |
+|   [ Global Memory (GM) ]  设备侧全局内存；介质为 HBM 或 DDR，容量依型号                  |
 |                                                                                             |
 |   +────────────────────────────────── AI CORE 内部 ─────────────────────────────────────+   |
 |   │                                                                                     │   |
@@ -91,9 +92,9 @@
 |   │              ▼                                        │                             │   |
 |   │   ┌───────────────────────────┐                       │                             │   |
 |   │   │ Unified Buffer (UB)       │───────────────────────┘                             │   |
-|   │   │ 片上高速缓存 (数百 KB)    │                                                     │   |
+|   │   │ 片上暂存空间 (容量依型号)    │                                                     │   |
 |   │   └─────────────┬─────────────┘                                                     │   |
-|   │                 │ 读写数据 (单周期极速吞吐)                                         │   |
+|   │                 │ 读写片上数据                                         │   |
 |   │                 ▼                                                                   │   |
 |   │   ┌───────────────────────────┐           ┌───────────────────────────┐             │   |
 |   │   │ Vector 向量计算单元       │           │ Cube 矩阵乘加速器         │             │   |
@@ -108,7 +109,9 @@
 </pre>
     </div>
 
-    <h2>2. Vector 算子三阶段流水线速查 (SPMD 范式)</h2>
+    <p><strong>区分两层搬运：</strong> Host 与 Device 之间传输数据，与设备内部 GM ↔ UB 的搬运不同。上图 MTE2/MTE3 对应后者；CopyOut 结束只表示结果已写回 NPU 的 GM。</p>
+
+    <h2>2. 典型向量加法的三个阶段</h2>
     <div class="hw-box">
       <table style="margin: 0;">
         <caption>典型三阶段流水硬件与核心动作对应关系</caption>
@@ -143,11 +146,11 @@
       </table>
     </div>
 
-    <h2>3. 算子调优黄金法则 (Storage Strength Checklist)</h2>
+    <h2>3. 后续课选读：优化前提</h2>
     <ul>
-      <li><strong>带宽对齐规则：</strong> 昇腾 AI Core 数据搬运基本单元为 <strong>32 字节（32 Bytes Cache Line）</strong>。无论输入输出，地址与切分长度尽量保证 32 字节对齐。</li>
-      <li><strong>计算与搬运重叠：</strong> 纯串行执行效率低下，Ascend C 通过 <strong>双缓冲（Double Buffer）</strong> 技术让 MTE 搬运下一批数据的同时，Vector 单元正在计算当前批次数据。</li>
-      <li><strong>内存受限 vs 计算受限：</strong> 大多数 Vector 算子（如 Element-wise Add、Softmax）都是 <strong>Memory Bound（访存密集型）</strong>，性能上限取决于 GM ↔ UB 的搬运效率。</li>
+      <li><strong>对齐要求：</strong> 搬运接口常有地址和长度对齐要求（如 32 字节）；应按所用接口、数据类型与目标芯片核对。</li>
+      <li><strong>计算与搬运重叠：</strong> 双缓冲为不同数据块的搬运与计算提供并行空间，还需正确同步；收益受各阶段耗时与带宽等因素影响。把代码分成三个阶段并不自动保证重叠。</li>
+      <li><strong>定位瓶颈：</strong> 向量加法可能受访存带宽限制；具体瓶颈需要结合数据规模、实现方式与测量结果判断。</li>
     </ul>
   </main>
 

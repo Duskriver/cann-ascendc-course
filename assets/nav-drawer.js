@@ -18,107 +18,114 @@
       term: "Host 与 Device",
       en: "Host & Device",
       badge: "系统异构拓扑",
-      desc: "<strong>Host</strong> 指运行通用操作系统 (Linux) 的主机 CPU，负责任务分发与流程控制；<strong>Device</strong> 指昇腾 NPU 硬件加速器，负责执行高密度并行计算。"
+      desc: "<strong>Host</strong> 指主机 CPU 一侧，负责组织任务、准备数据并发起计算；<strong>Device</strong> 指昇腾 NPU 一侧，执行所分配的计算任务。主机内存与设备内存之间的传输，和 NPU 内部 GM 与 UB 之间的搬运是两个层次。"
     },
     {
       term: "CANN",
       en: "Compute Architecture for Neural Networks",
       badge: "软件栈中间件",
-      desc: "华为异构计算架构，向下屏蔽昇腾芯片硬件细节，向上支撑主流 AI 框架，提供驱动、Runtime、图引擎 (GE) 与统一算子库。"
+      desc: "华为面向昇腾的异构计算软件栈，连接上层 AI 框架与底层硬件，提供编译、运行时、算子库及开发工具。本课先将它理解为组织和执行 NPU 任务的软件支持。"
     },
     {
       term: "AI Core",
       en: "DaVinci Core",
       badge: "硬件执行单元",
-      desc: "昇腾 NPU 的核心计算引擎，内部集成了 Cube（矩阵）、Vector（向量）、Scalar（标量）三大计算单元及多级片上高速缓存。"
+      desc: "昇腾 NPU 的计算核心。本课程用 Vector（向量）、Cube（矩阵）和 Scalar（标量）说明计算与控制分工；不同芯片的单元组织方式和存储配置有所不同，具体以目标型号文档为准。"
     },
     {
       term: "Cube 单元",
       en: "Cube Unit",
       badge: "计算部件",
-      desc: "专用于大颗粒度矩阵乘法（M × K × N）硬件加速，单指令完成立方矩阵乘加运算，是大模型 Attention 和 MatMul 的核心主力。"
+      desc: "用于矩阵乘加的硬件单元。例如将 M × K 的矩阵与 K × N 的矩阵相乘，得到 M × N 的结果。支持的分块形状、数据类型和吞吐能力依芯片型号而定；第一课作为选读。"
     },
     {
       term: "Vector 单元",
       en: "Vector Unit",
       badge: "计算部件",
-      desc: "专用于一维向量/张量的并行运算，负责元素级加减乘除、激活函数（ReLU/GeLU）、归一化（LayerNorm/Softmax）等操作。"
+      desc: "用于对一批数据执行向量计算，可组合实现元素级运算、激活和归一化等算子。本课的向量加法先把输入搬入 UB，再调用计算接口；这不表示只能处理一维形状的张量。"
     },
     {
       term: "Scalar 单元",
       en: "Scalar Unit",
       badge: "控制部件",
-      desc: "执行常规标量计算与流程控制（循环计数、地址计算、分支跳转），扮演 AI Core 内部的微型调度大脑。"
+      desc: "负责标量计算和流程控制，例如循环计数、地址计算与条件分支。第一课只需认识它承担控制工作，不要求掌握其指令细节。"
     },
     {
       term: "Global Memory (GM)",
-      en: "Global Memory / HBM",
+      en: "Global Memory / HBM / DDR",
       badge: "片外大容量显存",
-      desc: "位于 AI Core 之外的高容量显存（数十 GB）。容量大但延迟高，AI Core 的计算单元<strong>无法直接在此处发起数学运算</strong>。"
+      desc: "设备侧的全局内存，位于计算核心之外，用于存放输入输出等数据。物理存储介质可为 HBM 或 DDR，容量依设备型号而定。本课的向量计算接口使用 UB 中的数据，因此先将输入从 GM 搬入 UB。"
     },
     {
       term: "Unified Buffer (UB)",
       en: "Unified Buffer",
-      badge: "片上高速缓存",
-      desc: "AI Core 内部专供 Vector 单元读写的片上高速暂存区（数百 KB）。数据必须由 GM 搬入 UB 才能被 Vector 单元直接计算。"
+      badge: "片上高速暂存空间",
+      desc: "用于向量计算的片上高速暂存空间，容量依芯片型号而定。在本课的向量加法中，输入先从 GM 搬入 UB，计算结果也先留在 UB，再写回 GM。它不是主机内存，也不等同于 CPU 自动管理的缓存。"
+    },
+    {
+      term: "L1 / L0",
+      en: "L1 / L0 Buffer",
+      badge: "片上存储层级 · 选读",
+      desc: "矩阵计算相关的片上存储层级，用来暂存输入与中间结果；L0 常按输入或累加结果分为 L0A、L0B、L0C。具体数据通路和容量依芯片型号而定，留待矩阵算子课程展开。"
     },
     {
       term: "MTE (搬运引擎)",
       en: "Memory Transfer Engine",
       badge: "DMA 硬件管线",
-      desc: "负责片外与片内（如 GM ↔ UB、GM ↔ L1/L0）异步数据搬运的专用硬件引擎，实现搬运与计算的流水线重叠。"
+      desc: "负责不同存储位置之间数据搬运的硬件引擎。本课用 MTE2 表示 GM → UB 的搬入、MTE3 表示 UB → GM 的写回。搬运与计算可以重叠，但需要正确安排缓冲与同步；具体通路依芯片型号而定。"
     },
     {
       term: "Ascend C",
       en: "Ascend C Language",
       badge: "编程接口规范",
-      desc: "原生 C/C++ 风格的高性能算子开发语言，采用 SPMD（单程序多数据）编程模型，提供自动流水调度与 Tensor API。"
+      desc: "用于昇腾算子开发的 C/C++ 编程语言与接口体系。本课程从向量编程范式入门，通过搬运、计算、内存管理与同步接口组织核函数；不把一种范式视为所有设备和算子的唯一写法。"
     },
     {
       term: "Tiling (切片)",
       en: "Tiling Algorithm",
       badge: "Host 侧调度策略",
-      desc: "将全局显存中远超片上缓存容量的超大 Tensor，切分为若干适合单次核函数与单块 UB 缓存处理的数据块（Tile）的数学算法。"
+      desc: "根据数据形状和硬件资源制定切分策略，包括多核任务分配和核内分块。每个核可在一次核函数执行中循环处理多个数据块；第一课先理解“工作台有限，需要分批处理”。"
     },
     {
       term: "TPipe & TQue",
       en: "TPipe & TQue",
       badge: "管道与消息队列",
-      desc: "Ascend C 提供的片上数据流管理机制。通过队列在 CopyIn、Compute、CopyOut 之间传递临时缓存指针，硬件自动完成异步同步。"
+      desc: "Ascend C 流水编程范式中的资源和队列管理接口。TPipe 管理相关资源，TQue 用于阶段间的数据传递与同步。开发者仍需正确安排入队、出队、缓冲分配与释放；实现重叠还取决于缓冲配置和数据依赖。"
     }
   ];
 
   const CHEATSHEET_HTML = `
     <div class="drawer-sec">
-      <div class="drawer-sec-title">1. 达芬奇 AI Core 拓扑图</div>
+      <div class="drawer-sec-title">1. 本课向量加法数据流（简化示意）</div>
       <pre style="background:#1a1a1a; color:#eee; padding:0.8rem; border-radius:4px; font-size:0.75rem; overflow-x:auto; line-height:1.45;">
 +─────────────────────────────────────────────+
-| HOST CPU: 发起算子指令与 Tiling 下发          |
+| HOST CPU: 发起算子指令与 Tiling 下发        |
 +─────────────────────────────────────────────+
-                      │ PCIe / HCCS
+                      │ 任务下发 / 主机与设备间传输
                       ▼
 +─────────────────────────────────────────────+
 | DEVICE (昇腾 NPU)                           |
-|   [ Global Memory (GM) ] 片外大显存          |
+|   [ Global Memory (GM) ] 设备侧全局内存     |
 |         │ (MTE2 搬入)        ▲ (MTE3 写回)  |
 |         ▼                    │              |
 |   +─────────────────────────────────────+   |
 |   │ AI CORE:                            │   |
 |   │   ┌─────────────────────────────┐   │   |
-|   │   │ Unified Buffer (UB 片上缓存)│   │   |
+|   │   │ Unified Buffer (UB 暂存空间)│   │   |
 |   │   └──────────────┬──────────────┘   │   |
-|   │                  ▼ (单周期读写)     │   |
+|   │                  ▼ (读写片上数据)   │   |
 |   │   ┌──────────────┴──────────────┐   │   |
-|   │   │ Vector (向量) / Cube (矩阵) │   │   |
+|   │   │ Vector 向量计算单元         │   │   |
 |   │   └─────────────────────────────┘   │   |
 |   │   Scalar 标量单元 (循环/指针调度)   │   |
 |   +─────────────────────────────────────+   |
 +─────────────────────────────────────────────+
       </pre>
+      <p style="font-size:0.84rem;">GM ↔ UB 的搬运发生在设备一侧；CopyOut 写回 NPU 的 GM，不代表结果已传回 Host。上图省略矩阵计算通路，具体单元组织和容量依芯片型号而定。</p>
     </div>
 
     <div class="drawer-sec">
-      <div class="drawer-sec-title">2. Vector 三阶段流水线</div>
+      <div class="drawer-sec-title">2. 典型向量加法的三个阶段</div>
       <table style="font-size:0.82rem; width:100%; margin:0.5rem 0; border-collapse:collapse;">
         <caption>典型三阶段流水线调度表</caption>
         <thead>
@@ -132,28 +139,28 @@
           <tr style="border-bottom:1px solid var(--border);">
             <td style="padding:4px;"><strong>1. CopyIn</strong></td>
             <td style="padding:4px;">MTE2</td>
-            <td style="padding:4px;">GM ➔ UB<br><code>DataCopy(inLocal, inGlobal)</code></td>
+            <td style="padding:4px;">GM ➔ UB<br><code>DataCopy(inLocal, inGlobal, size)</code></td>
           </tr>
           <tr style="border-bottom:1px solid var(--border);">
             <td style="padding:4px;"><strong>2. Compute</strong></td>
             <td style="padding:4px;">Vector</td>
-            <td style="padding:4px;">片上就地运算<br><code>Add(outLocal, inL1, inL2)</code></td>
+            <td style="padding:4px;">片上就地运算<br><code>Add(outLocal, inLocal1, inLocal2, size)</code></td>
           </tr>
           <tr>
             <td style="padding:4px;"><strong>3. CopyOut</strong></td>
             <td style="padding:4px;">MTE3</td>
-            <td style="padding:4px;">UB ➔ GM<br><code>DataCopy(outGlobal, outLocal)</code></td>
+            <td style="padding:4px;">UB ➔ GM<br><code>DataCopy(outGlobal, outLocal, size)</code></td>
           </tr>
         </tbody>
       </table>
     </div>
 
     <div class="drawer-sec">
-      <div class="drawer-sec-title">3. 核心准则备忘</div>
+      <div class="drawer-sec-title">3. 后续课选读：优化前提</div>
       <ul style="font-size:0.84rem; padding-left:1.2rem; margin:0.3rem 0; line-height:1.6;">
-        <li><strong>32 字节对齐：</strong> 搬运地址与数据切分尽量保持 32 字节整数倍。</li>
-        <li><strong>计算搬运重叠：</strong> 采用 Double Buffer（双缓冲）实现流水掩盖。</li>
-        <li><strong>Vector 算子瓶颈：</strong> 大多为 Memory Bound，受限于 GM ↔ UB 带宽。</li>
+        <li><strong>对齐要求：</strong> 搬运接口常有地址和长度对齐要求（如 32 字节）；应按所用接口、数据类型与目标芯片核对。</li>
+        <li><strong>计算搬运重叠：</strong> 双缓冲为不同数据块的搬运与计算提供并行空间，还需正确同步；收益受各阶段耗时与带宽等因素影响。</li>
+        <li><strong>定位瓶颈：</strong> 向量加法可能受访存带宽限制；具体瓶颈需要结合数据规模、实现方式与测量结果判断。</li>
       </ul>
     </div>
   `;

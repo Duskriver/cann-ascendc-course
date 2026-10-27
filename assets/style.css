@@ -1762,6 +1762,127 @@ dialog.drawer-dialog[open]::backdrop {
   color: #e6edf3;
 }
 
+/* First lesson: guided main path, optional detail, and learner notes. */
+.lesson-small, .section-time {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+.section-time {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-weight: 400;
+}
+.lesson-route {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  padding: 1rem 0;
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+}
+.lesson-route a { color: var(--accent-blue); }
+.lesson-details {
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--card-bg);
+  padding: 0.9rem 1rem;
+  min-width: 0;
+}
+.lesson-details > summary {
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  color: var(--accent-blue);
+}
+.lesson-details[open] > summary { margin-bottom: 0.9rem; }
+.lesson-details > :last-child { margin-bottom: 0; }
+.addition-example {
+  padding: 1rem 1.2rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent-blue);
+  border-radius: 6px;
+  background: var(--surface);
+}
+.addition-example > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem 1.5rem;
+  padding: 0.25rem 0;
+}
+.addition-example code { white-space: pre; }
+.mem-tier-row p { margin: 0.4rem 0 0; }
+.data-steps li, .completion-list li { margin: 0.5rem 0; }
+.code-preview .sync-code-block {
+  width: 100%;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  text-align: left;
+  font: inherit;
+  overflow-wrap: anywhere;
+}
+.code-preview .sync-code-block code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+}
+.pipeline-workbench .hw-zone-header { flex-wrap: wrap; gap: 0.25rem; }
+.pipeline-workbench .tensor-row { flex-wrap: wrap; }
+.pipeline-workbench .chip-stage { min-width: 0; }
+.pipeline-workbench .sim-status { margin-top: 1rem; }
+.terminal-sample {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+.learning-record {
+  padding: 1.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--font-sans);
+}
+.learning-record h3 { margin-top: 0; }
+.record-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.learning-record label { display: block; font-size: 0.88rem; font-weight: 600; }
+.learning-record input, .learning-record textarea {
+  display: block;
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--card-bg);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+}
+.learning-record textarea { resize: vertical; }
+button.term-chip { font: inherit; font-size: 0.92em; border: 0; border-bottom: 2px dotted var(--accent-blue); }
+:is(button, summary, input, textarea, a):focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 3px;
+}
+main section { scroll-margin-top: 1rem; }
+@media (max-width: 640px) {
+  .record-grid { grid-template-columns: 1fr; }
+  .pipeline-workbench { padding: 0.75rem; }
+  .pipeline-workbench .chip-stage { padding: 0.65rem; }
+  .pipeline-workbench .hw-zone { padding: 0.6rem; }
+  .pipeline-workbench .mte-corridor { grid-template-columns: 1fr; }
+  .lesson-details { padding: 0.75rem; }
+}
+
 /* ==========================================================================
    6. Responsive Breakpoints & Print Media
    ========================================================================== */

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light dark">
-  <title>第 0001 课：初识异构计算与达芬奇 AI Core 数据流 | CANN 算子开发实战</title>
+  <title>第 0001 课：一次加法的数据之旅：认识 CPU 与 NPU | CANN 算子开发实战</title>
   <script>
     (function() {
       const t = localStorage.getItem('site-theme');
@@ -13,9 +13,9 @@
       }
     })();
   </script>
-  <link rel="stylesheet" href="../assets/style.css?v=20261025c">
-  <script src="../assets/quiz.js?v=20261027a" defer></script>
-  <script src="../assets/nav-drawer.js?v=20261025c" defer></script>
+  <link rel="stylesheet" href="../assets/style.css?v=20261027b">
+  <script src="../assets/quiz.js?v=20261027b" defer></script>
+  <script src="../assets/nav-drawer.js?v=20261027b" defer></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">跳至主要内容</a>
@@ -33,264 +33,283 @@
   </header>
 
   <main id="main-content" tabindex="-1">
-    <span class="badge">Lesson 0001 · 零基础破冰与心智模型</span>
-    <h1>初识异构计算与达芬奇 AI Core</h1>
-    <p class="subtitle">解密 NPU 核心算力：为什么 GPU/NPU 算子不能像 CPU 一样直接写 <code>z[i] = x[i] + y[i]</code>？</p>
+    <span class="badge">第 0001 课 · 异构计算入门 · 约 60 分钟</span>
+    <h1>一次加法的数据之旅：认识 CPU 与 NPU</h1>
+    <p class="subtitle">跟着四对数字，弄清谁来算、数据放在哪，以及为什么要搬入、计算、再写回。</p>
 
     <div class="mission-tie">
-      <strong>🎯 直通实战目标 (Your Mission)：</strong> 我们最终要用 <span class="term-chip" data-term="Ascend C">Ascend C</span> 编写在昇腾 NPU 上跑通的高性能自定义算子。在敲下第一行代码前，你需要先看懂芯片里的<strong>“工地沙盘”</strong>：<strong>什么是算子、数据放在哪座仓库、谁负责搬砖、谁负责计算</strong>。
+      <strong>这节课结束时，你能做到：</strong>
+      <ul>
+        <li>用自己的话说明 CPU 与 NPU 在本课中的分工。</li>
+        <li>画出一次加法“搬入 → 计算 → 写回”的数据路线。</li>
+        <li>在真实设备上找到 NPU 型号、设备编号和显存容量。</li>
+      </ul>
+      <p class="lesson-small">本课先建立一个够用的直觉。英文缩写可以随时查，不要求背诵；完整核函数留到下一课。</p>
     </div>
+    <p><strong>起点：</strong>适合接触过数组、函数和循环，但没有 GPU/NPU 编程经验的同学。若这些编程概念也不熟悉，先展开下面的准备说明。</p>
+    <details class="lesson-details">
+      <summary>课前准备：数组、函数、循环分别是什么？</summary>
+      <p><strong>数组</strong>是一排有顺序的数字，如 <code>[10, 20, 30, 40]</code>；<strong>函数</strong>把一组操作起个名字，方便重复调用；<strong>循环</strong>让某个动作按顺序做多次。</p>
+      <p>先练习把两排数字按位置相加，并用口头步骤说明怎么算。若需要学习基本语法，先补一个小练习：用熟悉的语言写出遍历数组并相加的函数，再进入后续代码课。本课可以先跟着数字和图学习。</p>
+    </details>
+    <nav class="lesson-route" aria-label="本课学习路线">
+      <a href="#addition">① 加法任务</a><a href="#division">② 谁来算</a><a href="#dataflow">③ 数据怎样走</a><a href="#recall">④ 自己讲一遍</a><a href="#device-lab">⑤ 认识设备</a>
+    </nav>
+    <details class="lesson-details">
+      <summary>建议节奏：60 分钟怎样安排？</summary>
+      <p>加法任务 5 分钟 → CPU/NPU 分工 10 分钟 → 存储与三步演示 20 分钟 → 预测与复盘 10 分钟 → 真机识别 10 分钟 → 答疑与预告 5 分钟。可按自己的理解速度暂停和重看。</p>
+    </details>
 
-    <!-- =====================================================================
-         SECTION 1: 0基础破冰 —— 算子、核函数与异构计算
-         ===================================================================== -->
-    <h2>1. 零基础先导：什么是“算子”？为什么需要异构计算？</h2>
-
-    <p>很多第一次接触底层开发的同学会被<strong>“异构计算”</strong>、<strong>“算子（Operator）”</strong>、<strong>“核函数（Kernel）”</strong>这三个词唬住。其实用平时写 Python/C 语言来做对比，30 秒就能彻底明白：</p>
-
-    <ul>
-      <li><strong>什么是算子（Operator）？</strong> 当你在 PyTorch 里写下一行 <code>z = x + y</code>（比如把两个包含 1 亿个数字的数组相加），这个“加法动作”在 AI 框架里就叫一个<strong>算子（Add 算子）</strong>。同理，矩阵相乘叫 <code>MatMul</code> 算子，激活函数叫 <code>ReLU</code> 算子。</li>
-      <li><strong>什么是核函数（Kernel）？</strong> 算子只是一个名字，真正下发到昇腾 NPU 芯片上执行这 1 亿次加法的<strong>底层 C/C++ 函数</strong>，就叫<strong>核函数（Kernel Function）</strong>——也就是我们要用 <span class="term-chip" data-term="Ascend C">Ascend C</span> 编写的核心代码。</li>
-    </ul>
-
-    <p>那么，<strong>为什么不直接用电脑上的 CPU 算这 1 亿次加法，非要搞一套“Host + Device 异构计算”呢？</strong> 看下面的直观对比：</p>
-
-    <div class="analogy-grid">
-      <div class="analogy-card">
-        <div class="analogy-card-header">
-          <span>🐢 传统通用计算：CPU 单兵搬砖</span>
-          <span class="analogy-pill">平坦内存模式</span>
-        </div>
-        <p style="font-size:0.86rem; margin-bottom:0.5rem;">
-          <strong>CPU 就像一位博学的大学教授：</strong> 擅长复杂的逻辑判断（操作系统、网络、<code>if-else</code>），但手里只有寥寥几个核心。面对 1 亿次简单的加法，只能一趟趟去内存取数、算完再放回：
-        </p>
-        <div class="brick-demo" aria-hidden="true">
-          <div style="font-weight:600; color:var(--ink-muted); margin-bottom:0.25rem;">CPU 单核串行流水：每次算 1 对</div>
-          <div class="brick-lane">
-            <span class="brick-box">取 x[0],y[0]</span> ➔ <span class="brick-box">算 z[0]</span> ➔ <span class="brick-box">取 x[1],y[1]</span> ➔ <span class="brick-box">算 z[1]</span> ...
-          </div>
-        </div>
-        <p style="font-size:0.82rem; color:var(--ink-muted); margin-bottom:0;">
-          <strong>代码写法：</strong> <code>z[i] = x[i] + y[i]</code>（直接读写同一个系统内存，简单但吞吐量低）。
-        </p>
+    <section id="addition">
+      <h2>1. 从一个你已经会算的任务开始 <span class="section-time">5 分钟</span></h2>
+      <p>把下面两排数字按位置相加。先自己算一遍，再展开核对：</p>
+      <div class="addition-example" aria-label="两组输入数字">
+        <div><span>输入 x</span><code>[10, 20, 30, 40]</code></div>
+        <div><span>输入 y</span><code>[ 1,  2,  3,  4]</code></div>
       </div>
+      <details class="lesson-details">
+        <summary>核对加法结果</summary>
+        <p><code>z = [11, 22, 33, 44]</code>。每个位置的结果，都来自相同位置的两个输入相加。</p>
+      </details>
+      <p>在 AI 计算中，这样一个有明确输入、输出和计算规则的操作，叫作<strong>算子（Operator）</strong>。这个例子就是加法算子。后面把它交给 NPU 执行时，数学规则仍然一样；我们要学习的是怎样安排数据和计算。</p>
+      <p class="margin-note">四对数字只是为了方便观察。CPU 完全能完成这个小任务；这里不比较运行速度，也不意味着小任务交给 NPU 一定更快。</p>
+    </section>
 
-      <div class="analogy-card highlight-card">
-        <div class="analogy-card-header">
-          <span>🚀 异构计算：Host 指挥 + NPU 百人车间</span>
-          <span class="analogy-pill">Host + Device 协同</span>
+    <section id="division">
+      <h2>2. 谁来安排，谁来计算？ <span class="section-time">10 分钟</span></h2>
+      <p>CPU 是擅长通用任务的处理器，NPU 是面向神经网络等计算任务的加速器。让不同类型的处理器协同完成任务，叫作<strong>异构计算</strong>。本课采用下面这组分工：</p>
+      <div class="analogy-grid">
+        <div class="analogy-card">
+          <h3>主机 CPU · Host</h3>
+          <p>像任务的组织者，准备输入、安排设备资源、发起计算，并在完成后处理结果。</p>
         </div>
-        <p style="font-size:0.86rem; margin-bottom:0.5rem;">
-          把不同性格的芯片组合在一起干活，就叫<strong>异构计算</strong>：让 <strong><span class="term-chip" data-term="Host 与 Device">Host（主机 CPU）</span></strong> 当包工头负责发号施令；把 1 亿次加法的重体力活交给拥有几十个计算车间的 <strong><span class="term-chip" data-term="Host 与 Device">Device（昇腾 NPU）</span></strong>：
-        </p>
-        <div class="brick-demo" aria-hidden="true">
-          <div style="font-weight:600; color:var(--accent-blue); margin-bottom:0.25rem;">NPU 多核 + 向量化：成千上万个数同时算！</div>
-          <div class="brick-lane">
-            <span class="brick-box parallel">AI Core 0: 算 [0..999]</span>
-            <span class="brick-box parallel">AI Core 1: 算 [1000..1999]</span>
-          </div>
+        <div class="analogy-card highlight-card">
+          <h3>昇腾 NPU · Device</h3>
+          <p>像接到任务的计算车间。输入准备好以后，由设备上的计算单元执行加法。</p>
         </div>
-        <p style="font-size:0.82rem; color:var(--ink-muted); margin-bottom:0;">
-          <strong>桥梁连接：</strong> Host 与 NPU 之间通过 <strong>PCIe / HCCS 高速跨海大桥</strong> 传输数据与指令（Kernel Launch）。
-        </p>
       </div>
-    </div>
-
-    <h3>🗺️ 全景拼图：CANN 软件栈到底在哪一层？（点击各层查看职责）</h3>
-    <p>当你写下一行 Python 代码时，它是怎么穿过层层软件，最终变成昇腾芯片动作的？中间的桥梁就是华为的 <strong><span class="term-chip" data-term="CANN">CANN（神经网络异构计算架构）</span></strong>。点击下方层级，看看我们要写的 Ascend C 算子处在什么位置：</p>
-
-    <div class="cann-stack-box">
-      <div class="stack-layers" role="group" aria-label="CANN 软硬件分层结构（点击查看详情）">
-        <button type="button" class="stack-layer-btn" aria-pressed="false"
-                data-stack-detail="<strong>① 上层 AI 框架层（PyTorch / MindSpore）：</strong> 算法工程师写模型的地方（运行在 <strong>Host CPU</strong> 上）。当你调用 <code>torch.add(x, y)</code> 时，框架并不自己做数学运算，而是向下请求 CANN 执行对应的底层算子。">
-          <span class="stack-layer-name">① AI 框架层 (Host)</span>
-          <span class="stack-layer-desc">算法工程师编写的大模型与训练/推理脚本</span>
-          <span class="stack-layer-code">z = torch.add(x, y)</span>
-        </button>
-
-        <div class="stack-arrow" aria-hidden="true">⬇ 框架调用算子接口</div>
-
-        <button type="button" class="stack-layer-btn" aria-pressed="false"
-                data-stack-detail="<strong>② CANN 调度与运行时层（GE 图引擎 / AscendCL / Runtime）：</strong> 扮演“总调度官”。它负责在 NPU 显存上分配空间、计算切分策略（Tiling），并通过 PCIe 总线向 NPU 发送<strong>核函数启动命令（Kernel Launch）</strong>。">
-          <span class="stack-layer-name">② CANN 运行时 (桥梁)</span>
-          <span class="stack-layer-desc">AscendCL 接口、图编译引擎与任务下发调度</span>
-          <span class="stack-layer-code">aclrtLaunchKernel(...)</span>
-        </button>
-
-        <div class="stack-arrow" aria-hidden="true">⬇ 下发至 NPU 算子库执行</div>
-
-        <button type="button" class="stack-layer-btn is-ours active" aria-pressed="true"
-                data-stack-detail="<strong>③ 🎯 CANN 算子层（Ascend C 自定义算子 —— 我们的主战场！）：</strong> 官方算子库（AOL）不可能覆盖所有前沿大模型的新结构。当遇到算子缺失或性能瓶颈时，我们就用 <strong>Ascend C</strong> 编写运行在 AI Core 上的核函数，精细控制数据搬运与并行计算！">
-          <span class="stack-layer-name">③ Ascend C 算子层 🎯</span>
-          <span class="stack-layer-desc"><strong>【本课程核心】</strong> 编写核函数，指挥搬运与计算流水线</span>
-          <span class="stack-layer-code">add_custom.cpp (Kernel)</span>
-        </button>
-
-        <div class="stack-arrow" aria-hidden="true">⬇ 编译为机器指令驱动硬件</div>
-
-        <button type="button" class="stack-layer-btn" aria-pressed="false"
-                data-stack-detail="<strong>④ 昇腾 NPU 硬件层（达芬奇 AI Core）：</strong> 真正的物理硅片车间！每颗昇腾芯片内含数十个 <strong>AI Core</strong>，里面驻扎着 MTE 搬运车队和 Cube / Vector / Scalar 三大计算工种。">
-          <span class="stack-layer-name">④ 昇腾 NPU 硬件 (Device)</span>
-          <span class="stack-layer-desc">片外大显存 (GM) + 数十个达芬奇 AI Core 核心</span>
-          <span class="stack-layer-code">Ascend 910B / 310P</span>
-        </button>
-      </div>
-
-      <div id="cann-stack-detail" class="arch-detail-panel" aria-live="polite">
-        <strong>③ 🎯 CANN 算子层（Ascend C 自定义算子 —— 我们的主战场！）：</strong> 官方算子库（AOL）不可能覆盖所有前沿大模型的新结构。当遇到算子缺失或性能瓶颈时，我们就用 <strong>Ascend C</strong> 编写运行在 AI Core 上的核函数，精细控制数据搬运与并行计算！
+      <p>两者之间需要软件协调。<button type="button" class="term-chip" data-term="CANN">CANN</button> 是支持昇腾计算的软件栈；我们后面用 <button type="button" class="term-chip" data-term="Ascend C">Ascend C</button> 编写在设备上执行的计算程序，其中在设备上执行的核心函数叫<strong>核函数（Kernel）</strong>。这一课先认识它们的用途。</p>
+      <p class="lesson-small">CPU 也支持并行与向量化；NPU 是否更快还取决于任务规模、数据传输等因素。不要把这组分工理解为 CPU 只能逐个数计算。</p>
+    <div class="quiz-section" id="check-host">
+      <div class="quiz-question" data-correct="0" data-explain-correct="对。Host 侧安排和发起任务，本课把加法计算交给 Device 上的计算单元。" data-explain-wrong="再看看两张分工卡：本课把加法交给了哪一方？CPU 也能算，但这里选择让 NPU 执行。">
+        <h3 class="quiz-prompt">想一想：本课中，谁发起任务，谁执行加法？</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" type="button">主机发起任务，设备执行加法</button>
+          <button class="quiz-option" type="button">设备发起任务，主机执行加法</button>
+          <button class="quiz-option" type="button">主机发起任务，主机执行加法</button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite" role="status"></div>
       </div>
     </div>
+    </section>
 
-    <!-- =====================================================================
-         SECTION 2: 达芬奇 AI Core 内部 —— 三大工种几何图解与空间拓扑
-         ===================================================================== -->
-    <h2>2. 拆开达芬奇 AI Core：三大工种与“仓库 vs 工作台”</h2>
-
-    <p>现在我们用放大镜钻进昇腾 NPU 内部。一颗昇腾芯片里整齐排列着几十个一模一样的超级计算车间，名叫 <strong><span class="term-chip" data-term="AI Core">AI Core（达芬奇核心）</span></strong>。在每个 AI Core 车间里，有三位分工截然不同的“工人”——按他们每次处理数据的<strong>几何形状（维度）</strong>，一眼就能分清：</p>
-
-    <div class="unit-cards-grid">
-      <!-- Scalar: 0D -->
-      <div class="unit-card">
-        <div class="unit-card-top">
-          <span class="unit-dim-tag">0 维 · 单个数字 (Scalar)</span>
-          <h3><span class="term-chip" data-term="Scalar 单元">Scalar 标量单元</span></h3>
-          <div class="unit-role-sub">👷 角色：车间排产调度员</div>
-          <p style="font-size:0.84rem; margin-bottom:0;">
-            每次只算 <strong>1 个单独的数</strong>。它不干大批量的张量计算，专门负责算 <code>for</code> 循环第几轮、下一块数据的内存地址偏了多少，并向其他单元下达指令。
-          </p>
-        </div>
-        <div>
-          <div class="unit-visual-stage" aria-hidden="true">
-            <div style="font-size:0.74rem; color:var(--ink-muted);">单次处理：1 个标量参数</div>
-            <div class="geo-row">
-              <span class="geo-cell scalar-cell">i=0</span>
-              <span style="font-size:0.8rem; font-weight:700;">➔</span>
-              <span class="geo-cell scalar-cell">i=1</span>
-            </div>
-            <div style="font-family:var(--font-mono); font-size:0.72rem; color:var(--ink-muted);">addr = base + i * 256</div>
-          </div>
-          <div style="font-size:0.78rem; color:var(--ink-muted);">
-            <strong>负责操作：</strong> 循环控制、地址指针偏移、分支跳转。
-          </div>
-        </div>
-      </div>
-
-      <!-- Vector: 1D -->
-      <div class="unit-card">
-        <div class="unit-card-top">
-          <span class="unit-dim-tag">1 维 · 一整排数组 (Vector)</span>
-          <h3><span class="term-chip" data-term="Vector 单元">Vector 向量单元</span></h3>
-          <div class="unit-role-sub">⚡ 角色：高速一维流水线</div>
-          <p style="font-size:0.84rem; margin-bottom:0;">
-            每次把<strong>一整排数字（1D 向量）</strong>对齐，一条指令下去，整排元素<strong>同时</strong>完成加减乘除！是我们前几节课编写自定义算子的绝对主力。
-          </p>
-        </div>
-        <div>
-          <div class="unit-visual-stage" aria-hidden="true">
-            <div class="geo-row">
-              <span class="geo-cell">10</span><span class="geo-cell">20</span><span class="geo-cell">30</span><span class="geo-cell">40</span>
-            </div>
-            <div style="font-size:0.72rem; font-weight:700; color:var(--accent-blue);">+ 同一周期四路并发相加 ⬇️</div>
-            <div class="geo-row">
-              <span class="geo-cell">11</span><span class="geo-cell">22</span><span class="geo-cell">33</span><span class="geo-cell">44</span>
-            </div>
-          </div>
-          <div style="font-size:0.78rem; color:var(--ink-muted);">
-            <strong>负责算子：</strong> <code>Add</code>、<code>Mul</code>、<code>Exp</code>、<code>ReLU</code>、<code>LayerNorm</code>、<code>Softmax</code>。
-          </div>
-        </div>
-      </div>
-
-      <!-- Cube: 2D/3D -->
-      <div class="unit-card">
-        <div class="unit-card-top">
-          <span class="unit-dim-tag">2D/3D · 矩阵方块 (Cube)</span>
-          <h3><span class="term-chip" data-term="Cube 单元">Cube 矩阵单元</span></h3>
-          <div class="unit-role-sub">🧱 角色：重型矩阵压铸机</div>
-          <p style="font-size:0.84rem; margin-bottom:0;">
-            达芬奇架构的杀手锏！专攻两个<strong>二维矩阵相乘（<em>M</em> × <em>K</em> × <em>N</em>）</strong>。一锤子压下去，单周期直接完成 16 × 16 × 16（4096 次）乘加运算。
-          </p>
-        </div>
-        <div>
-          <div class="unit-visual-stage" aria-hidden="true">
-            <div class="cube-matrix-pair">
-              <div class="cube-grid-4x4">
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-              </div>
-              <span style="font-weight:700; font-size:0.8rem; color:var(--accent);">×</span>
-              <div class="cube-grid-4x4">
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-                <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
-              </div>
-            </div>
-            <div style="font-size:0.7rem; color:var(--ink-muted);">单指令整块矩阵乘加 (<em>A</em> × <em>B</em> + <em>C</em>)</div>
-          </div>
-          <div style="font-size:0.78rem; color:var(--ink-muted);">
-            <strong>负责算子：</strong> <code>MatMul</code>（全连接层 Linear、注意力 Attention、卷积 Conv）。
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 为什么不能直接算 GM？远郊大仓库 vs 手边工作台 -->
-    <div class="memory-wall-box">
-      <div style="font-weight:700; font-size:1.05rem; color:var(--accent); margin-bottom:0.4rem;">
-        💡 0基础必问：为什么 Vector 工人不能直接去显存（GM）里拿数据做加法？
-      </div>
-      <p style="font-size:0.9rem; margin-bottom:0.6rem;">
-        想象一下：<strong>Vector 计算单元</strong>是一个手速快到残影的装配工（<strong>1 秒能拧好 128 颗螺丝</strong>）。但是存放上亿颗螺丝的 <strong><span class="term-chip" data-term="Global Memory (GM)">Global Memory（GM 全局显存）</span></strong> 是一座建在<strong>几十公里外的远郊大仓库</strong>！
-      </p>
-
+    <section id="dataflow">
+      <h2>3. 一次加法，数据怎样走？ <span class="section-time">20 分钟</span></h2>
+      <p>现在只看 NPU 内部。<strong>假设输入已经准备在设备的存储里</strong>：从主机把输入送到 NPU 的过程先不展开。下面的“大仓库”和“工作台”都属于 NPU。</p>
       <div class="memory-compare-rows">
-        <div class="mem-tier-row">
-          <div class="mem-tier-head">
-            <strong>🏢 片外大仓库：Global Memory (GM / HBM 显存)</strong>
-            <span style="color:var(--ink-muted); font-size:0.8rem;">位于 AI Core 外部 · 所有核共享</span>
-          </div>
-          <div class="mem-bars-grid">
-            <span>存储容量</span>
-            <div class="mem-bar-track"><div class="mem-bar-fill gm-cap"></div></div>
-            <strong style="color:var(--accent-blue);">32 GB ~ 64 GB (极大)</strong>
-          </div>
-          <div class="mem-bars-grid">
-            <span>读写速度</span>
-            <div class="mem-bar-track"><div class="mem-bar-fill gm-spd"></div></div>
-            <strong style="color:var(--accent);">延迟数百周期 (慢)</strong>
-          </div>
-        </div>
-
-        <div class="mem-tier-row">
-          <div class="mem-tier-head">
-            <strong>🛠️ 片内工作台：Unified Buffer (UB 统一缓冲区)</strong>
-            <span style="color:var(--ink-muted); font-size:0.8rem;">位于 AI Core 内部 · Vector 贴身专用</span>
-          </div>
-          <div class="mem-bars-grid">
-            <span>存储容量</span>
-            <div class="mem-bar-track"><div class="mem-bar-fill ub-cap"></div></div>
-            <strong style="color:var(--accent-blue);">仅 ~192 KB ~ 256 KB (极小)</strong>
-          </div>
-          <div class="mem-bars-grid">
-            <span>读写速度</span>
-            <div class="mem-bar-track"><div class="mem-bar-fill ub-spd"></div></div>
-            <strong style="color:var(--success-ink);">单周期极速读写 (极快)</strong>
-          </div>
-        </div>
+        <div class="mem-tier-row"><strong>🏢 大仓库：全局存储 GM（Global Memory）</strong><p>放输入和最终输出，容量相对大。本例开始时，两排数字都在这里。</p></div>
+        <div class="mem-tier-row"><strong>🛠️ 工作台：统一缓冲区 UB（Unified Buffer）</strong><p>靠近计算单元，容量相对小。先把这次要计算的数据搬到这里，再进行向量加法。</p></div>
       </div>
-
-      <p style="font-size:0.88rem; margin-bottom:0;">
-        <strong>结论（硬件设计铁律）：</strong> 如果让 Vector 工人每算一个数都自己跑一趟远郊大仓库（GM），他 <strong>99% 的时间都浪费在路上</strong>！因此达芬奇架构直接从硬件电路上規定：<strong>Vector 单元只能读写手边的 <span class="term-chip" data-term="Unified Buffer (UB)">UB 工作台</span></strong>；而远郊仓库（GM）与工作台（UB）之间拉货的苦力活，全部交给专门的物流车队——<strong><span class="term-chip" data-term="MTE (搬运引擎)">MTE（内存搬运引擎）</span></strong>！
-      </p>
+      <p>你可以把设备上的计算核心 <strong>AI Core</strong> 想成一个车间。这里使用的<strong>向量计算单元 Vector</strong>像工作台旁的工人，负责按位置处理一组数字；<strong>搬运引擎 MTE</strong>负责在存储之间搬数据。先记住职责即可。</p>
+      <p>为什么需要工作台？靠近计算单元的存储便于快速取用数据，但容量有限。本课的向量加法接口使用 UB 中的数据，因此把要算的一小批先搬进去，用完再把结果写回大仓库。</p>
+      <ol class="data-steps">
+        <li><strong>搬入 · CopyIn：</strong>把 x、y 从 GM 搬到 UB。</li>
+        <li><strong>计算 · Compute：</strong>在 UB 中做加法，新结果也先放在 UB。</li>
+        <li><strong>写回 · CopyOut：</strong>把新结果从 UB 写回 GM 的输出位置。</li>
+      </ol>
+      <p class="margin-note">这是本课采用的 Ascend C 向量加法模型。三步搬运和计算发生在 NPU 内部；“写回 GM”还不等于“把结果返回主机”。</p>
+    <div class="quiz-section" id="predict-compute">
+      <div class="quiz-question" data-correct="2" data-explain-correct="对。新结果先留在 UB 工作台；完成写回后，GM 大仓库的输出才更新。下面停在第 2 步验证。" data-explain-wrong="这里问的是新计算出来的结果。回想计算发生在哪，再用下方第 2 步核对；还没写回就不会更新 GM 的输出。">
+        <h3 class="quiz-prompt">先预测：完成“计算”，还没“写回”，新结果在哪里？</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" type="button">大仓库有结果，工作台无结果</button>
+          <button class="quiz-option" type="button">大仓库有结果，工作台有结果</button>
+          <button class="quiz-option" type="button">大仓库无结果，工作台有结果</button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite" role="status"></div>
+      </div>
     </div>
+      <p><strong>验证方法：</strong>先点“1. 搬入”，再点“2. 计算”，比较上下两个输出行；最后点“3. 写回”。图展示每一步完成后的状态，“?” 表示该输出还没有本次的新结果，“--” 表示尚未搬入或计算。</p>
+      <div class="pipeline-workbench" id="flow-simulator">
+        <div class="workbench-toolbar">
+          <div class="sim-controls" role="group" aria-label="数据流步骤">
+            <button type="button" class="sim-btn active" data-sim-step="0" aria-pressed="true">0. 初始</button>
+            <button type="button" class="sim-btn" data-sim-step="1" aria-pressed="false">1. 搬入</button>
+            <button type="button" class="sim-btn" data-sim-step="2" aria-pressed="false">2. 计算</button>
+            <button type="button" class="sim-btn" data-sim-step="3" aria-pressed="false">3. 写回</button>
+          </div>
+          <button type="button" class="sim-play-btn" id="sim-autoplay-btn" aria-pressed="false">▶ 自动演示全流程</button>
+        </div>
+        <div class="chip-stage">
+          <!-- Off-chip GM Zone -->
+          <div class="hw-zone zone-active" id="sim-gm-zone">
+            <div class="hw-zone-header">
+              <span>🏢 NPU 内的大仓库 · GM</span>
+              <span>片外存储</span>
+            </div>
+            <div class="tensor-row">
+              <span>输入 x</span>
+              <span class="tensor-vals">
+                <span class="val-chip">10</span><span class="val-chip">20</span><span class="val-chip">30</span><span class="val-chip">40</span>
+              </span>
+            </div>
+            <div class="tensor-row">
+              <span>输入 y</span>
+              <span class="tensor-vals">
+                <span class="val-chip">1</span><span class="val-chip">2</span><span class="val-chip">3</span><span class="val-chip">4</span>
+              </span>
+            </div>
+            <div class="tensor-row" id="row-z-gm">
+              <span>输出 z</span>
+              <span class="tensor-vals" id="vals-z-gm">
+                <span class="val-chip">?</span><span class="val-chip">?</span><span class="val-chip">?</span><span class="val-chip">?</span>
+              </span>
+            </div>
+          </div>
 
-    <!-- 交互式 SVG 硬件拓扑沙盘 -->
-    <h3>🔍 交互式沙盘：达芬奇 AI Core 内部空间地图（点击部件查看秘密）</h3>
-    <p>之前只看文字很容易搞混谁在片外、谁在片内。请直接<strong>点击下方架构图中的各个硬件模块（或上方快捷按钮）</strong>，查看它们在芯片里的真实方位与代码对应关系：</p>
+          <!-- MTE Transfer Corridor -->
+          <div class="mte-corridor">
+            <div class="mte-channel" id="sim-mte2-channel">
+              🚚 搬入通道（MTE2）：待命
+            </div>
+            <div class="mte-channel" id="sim-mte3-channel">
+              🚛 写回通道（MTE3）：待命
+            </div>
+          </div>
 
+          <!-- On-chip UB + Vector Zone -->
+          <div class="hw-zone" id="sim-ub-zone">
+            <div class="hw-zone-header">
+              <span>🛠️ 计算单元旁的工作台 · UB</span>
+              <span>片上存储</span>
+            </div>
+            <div class="tensor-row" id="row-x-local">
+              <span>输入 x</span>
+              <span class="tensor-vals" id="vals-x-local">
+                <span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span>
+              </span>
+            </div>
+            <div class="tensor-row" id="row-y-local">
+              <span>输入 y</span>
+              <span class="tensor-vals" id="vals-y-local">
+                <span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span>
+              </span>
+            </div>
+            <div class="tensor-row" id="sim-vector-banner" style="justify-content:center; font-weight:700; font-family:var(--font-sans);">
+              等待把输入搬入工作台
+            </div>
+            <div class="tensor-row" id="row-z-local">
+              <span>输出 z</span>
+              <span class="tensor-vals" id="vals-z-local">
+                <span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="sim-status" id="sim-status-text" aria-live="polite"><strong>初始状态：</strong>输入在 GM 大仓库，UB 工作台还没有数据。先预测，再逐步验证。</div>
+        <details class="lesson-details code-preview">
+          <summary>想看看代码吗？展开三步伪代码（本课不要求会写）</summary>
+          <p class="lesson-small">下方借用 Ascend C 接口名帮助对应动作，<strong>不是可直接编译的核函数</strong>。为了看清数字只展示 4 个元素；完整代码还要处理地址绑定、内存分配、搬运长度与对齐、同步及启动。下一课再逐项补上。</p>
+          <div class="code-sync-pane">
+            <div class="ascend-code-lines" role="group" aria-label="伪代码与步骤联动">
+              <button type="button" class="sync-code-block code-active" data-code-step="0"><span class="sync-code-comment">// 初始：输入已准备在设备 GM</span><code>xGm = [10, 20, 30, 40]; yGm = [1, 2, 3, 4];</code></button>
+              <button type="button" class="sync-code-block" data-code-step="1"><span class="sync-code-comment">// 搬入：GM → UB</span><code>DataCopy(xLocal, xGm, 4);<br>DataCopy(yLocal, yGm, 4);</code></button>
+              <button type="button" class="sync-code-block" data-code-step="2"><span class="sync-code-comment">// 计算：结果先留在 UB</span><code>Add(zLocal, xLocal, yLocal, 4);</code></button>
+              <button type="button" class="sync-code-block" data-code-step="3"><span class="sync-code-comment">// 写回：UB → GM</span><code>DataCopy(zGm, zLocal, 4);</code></button>
+            </div>
+          </div>
+        </details>
+      </div>
+      <noscript><p class="margin-note">当前浏览器未启用 JavaScript。可以按上方三步文字学习：搬入后 UB 有输入；计算后只有 UB 有新结果；写回后 GM 的输出更新为 [11, 22, 33, 44]。交互测验和记录自动保存需要 JavaScript。</p></noscript>
+    </section>
+
+    <section id="recall">
+      <h2>4. 合上图，自己讲一遍 <span class="section-time">10 分钟</span></h2>
+    <div class="quiz-section" id="check-copyout">
+      <div class="quiz-question" data-correct="1" data-explain-correct="对。计算已在 UB 产生新结果，CopyOut 才负责更新 GM 中的输出。GM 属于 NPU，返回 Host 还涉及后续步骤。" data-explain-wrong="请切回第 2 步与第 3 步对比。结果可以已经算出，却仍停在 UB；主机不会因为计算结束就自动取走它。">
+        <h3 class="quiz-prompt">再想一想：若省略“写回”，GM 的输出为什么没有更新？</h3>
+        <div class="quiz-options">
+          <button class="quiz-option" type="button">计算没有完成，写回负责计算</button>
+          <button class="quiz-option" type="button">计算产生结果，写回负责更新</button>
+          <button class="quiz-option" type="button">计算产生结果，主机会自动取</button>
+        </div>
+        <div class="quiz-feedback" aria-live="polite" role="status"></div>
+      </div>
+    </div>
+      <div class="teacher-callout">
+        <strong>纸上复盘：不要求画得漂亮。</strong>
+        <ol><li>画两个方框，标出“大仓库”和“工作台”。</li><li>用箭头标出输入和结果怎样移动，指出加法在哪里发生。</li><li>补一句：谁发起任务，谁执行本次加法？</li></ol>
+        <details class="lesson-details"><summary>画完再展开自查</summary><p>Host CPU 发起任务，Device NPU 执行本次加法。设备内的数据路线：GM 输入 → 搬入 UB → Vector 在 UB 上计算 → UB 结果写回 GM。计算结束但未写回时，新结果仍只在 UB。</p></details>
+      </div>
+    </section>
+
+    <section id="device-lab">
+      <h2>5. 认识你手边的真实设备 <span class="section-time">10 分钟</span></h2>
+      <p>打开<strong>昇腾服务器的终端</strong>。如果你正在用普通电脑看课件，需要先通过老师提供的方式连接到服务器；下面的命令在服务器上执行。</p>
+      <pre><code>npu-smi info</code></pre>
+      <p>先找三项：<strong>设备编号、型号、显存总容量</strong>。下面是经过节选的示例，点击蓝色标签查看含义；不同设备和驱动版本的列名、排版、数字可能不同。</p>
+      <div class="term-explorer">
+        <div class="term-topbar"><span>npu-smi info · 示例节选，非实时设备数据</span></div>
+        <div class="term-body"><pre class="terminal-sample">NPU  Name    Health    HBM-Usage(MB)
+<button type="button" class="term-hotspot active" aria-pressed="true" data-term-explain="<strong>设备编号：</strong>示例中的 NPU 编号是 0，用于区分设备。请记录自己的输出；它不是 AI Core 的数量。">0</button>    <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>设备型号：</strong>示例是 910B。记录你实际看到的型号，后续选代码和查文档会用到它。">910B</button>    OK        <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>显存占用 / 总容量：</strong>示例 1024 / 65536 表示已使用 1024 MB，总容量 65536 MB。记录斜杠右侧的总量和单位。HBM 是一种存储介质；其他设备可能显示 DDR 等字段，按实际输出记录。">1024 / 65536</button></pre></div>
+        <div class="term-inspector" id="term-inspector-box" aria-live="polite"><strong>设备编号：</strong>示例中的 NPU 编号是 0，用于区分设备。请记录自己的输出；它不是 AI Core 的数量。</div>
+      </div>
+      <div class="learning-record">
+        <h3>我的设备记录</h3>
+        <p class="lesson-small">填写真实输出。若还没有连上设备，可先完成概念部分，实操一项留待连接后完成。</p>
+        <div class="record-grid">
+          <label for="device-id">设备编号<input id="device-id" data-learning-field="device-id" type="text" maxlength="80" placeholder="填写实际编号" autocomplete="off"></label>
+          <label for="device-model">设备型号<input id="device-model" data-learning-field="device-model" type="text" maxlength="120" placeholder="填写实际型号" autocomplete="off"></label>
+          <label for="device-memory">显存总容量（含单位）<input id="device-memory" data-learning-field="device-memory" type="text" maxlength="120" placeholder="读取总量，附上单位" autocomplete="off"></label>
+        </div>
+        <label for="lesson-reflection">一句话复盘：新结果从哪里算出，最后写到哪里？</label>
+        <textarea id="lesson-reflection" data-learning-field="reflection" rows="3" maxlength="2000" placeholder="用自己的话写，也可以记录一个还没明白的问题。"></textarea>
+        <p class="lesson-small" id="learning-save-status" role="status" aria-live="polite">记录仅保存在当前浏览器；填写不代表已经通过验收。</p>
+      </div>
+      <details class="lesson-details">
+        <summary>遇到问题：命令找不到、没有设备、输出与示例不同</summary>
+        <ul>
+          <li><strong>命令找不到：</strong>先确认当前终端连接的是昇腾服务器。若已连接，保留报错原文，请老师或环境维护者检查驱动工具及命令路径。</li>
+          <li><strong>没有设备或没有权限：</strong>记录报错，请老师确认分配给你的设备，以及容器或账户的访问配置。</li>
+          <li><strong>型号、列名或容量不同：</strong>按自己的实际输出填写，不要照抄示例；找不到显存字段时，把输出带到答疑环节核对。</li>
+        </ul>
+      </details>
+      <details class="lesson-details">
+        <summary>可选环境检查：下一课会用到的 CANN 开发套件</summary>
+        <pre><code>echo "$ASCEND_TOOLKIT_HOME"</code></pre>
+        <p>这只查看当前终端的环境变量。输出为空不能证明没有安装 CANN；可能尚未加载环境配置。记录结果，按课程提供的安装路径与环境说明检查；本课无需为了这一项重新安装软件。</p>
+      </details>
+    </section>
+
+    <section id="finish">
+      <h2>本课完成检查 <span class="section-time">答疑与预告 · 5 分钟</span></h2>
+      <ul class="completion-list">
+        <li>我能说明：本课由 Host CPU 发起任务，Device NPU 执行加法。</li>
+        <li>我能独立画出三步路线，解释为什么“算完”还需要“写回”。</li>
+        <li>我已从真实设备输出中找到并记录型号、编号和显存总容量。</li>
+      </ul>
+      <p>前两项还不确定，就回到演示逐步观察。第三项需要真实设备验证，示例阅读不能代替它。下一课会把三步流程对应到一个完整的 Ascend C 加法核函数。</p>
+    </section>
+
+    <section id="optional-reading">
+      <h2>选读：有余力再展开</h2>
+      <p>下面的内容用来建立全景认识，不列入本课达标要求，也可以以后再回来查。</p>
+      <details class="lesson-details">
+        <summary>选读 A · CANN 与自定义算子处在什么位置？</summary>
+        <p>下面按职责简化分层，不代表所有任务都经过完全相同的调用路径。点击各层查看用途：</p>
+        <div class="cann-stack-box"><div class="stack-layers" role="group" aria-label="软件和硬件的职责">
+          <button type="button" class="stack-layer-btn" aria-pressed="false" data-stack-detail="<strong>AI 框架：</strong>组织模型和算子计算。数据和算子配置决定任务在哪种设备上执行，不是所有框架操作都会交给 NPU。"><span class="stack-layer-name">① AI 框架</span><span class="stack-layer-desc">例如 PyTorch / MindSpore</span></button>
+          <button type="button" class="stack-layer-btn" aria-pressed="false" data-stack-detail="<strong>CANN 软件栈：</strong>提供算子库、编译、运行时和设备管理等能力，支撑任务在昇腾设备上执行。"><span class="stack-layer-name">② CANN</span><span class="stack-layer-desc">连接上层任务与昇腾执行环境</span></button>
+          <button type="button" class="stack-layer-btn is-ours active" aria-pressed="true" data-stack-detail="<strong>本课程的方向：</strong>当需要自定义计算时，用 Ascend C 编写核函数，并配合 Host 侧的任务准备与调用。下一课先认识加法核函数。"><span class="stack-layer-name">③ 自定义算子</span><span class="stack-layer-desc">用 Ascend C 实现设备上的计算</span></button>
+          <button type="button" class="stack-layer-btn" aria-pressed="false" data-stack-detail="<strong>NPU 硬件：</strong>执行编译后的任务，使用存储、搬运及计算单元完成工作。具体核心组织和资源随型号变化。"><span class="stack-layer-name">④ NPU 硬件</span><span class="stack-layer-desc">实际完成搬运与计算</span></button>
+        </div><div id="cann-stack-detail" class="arch-detail-panel" aria-live="polite"><strong>本课程的方向：</strong>用 Ascend C 编写核函数，配合 Host 侧准备与调用。下一课先认识加法核函数。</div></div>
+      </details>
+      <details class="lesson-details">
+        <summary>选读 B · 认识更多计算单元和搬运引擎</summary>
+        <p>这是一张按功能简化的架构图，不是芯片的物理布局。不同产品的计算单元组合、存储容量和连接方式会有差别，开发时以具体型号文档为准。</p>
+        <ul><li><strong>Scalar 标量单元：</strong>处理循环、地址计算等控制工作。</li><li><strong>Vector 向量单元：</strong>处理一组数据的向量计算，本课的加法使用它。</li><li><strong>Cube 矩阵单元：</strong>擅长矩阵乘加；矩阵可以先理解为按行列排列的数字表。</li></ul>
+        <p>本课搬入对应 <strong>MTE2</strong>，写回对应 <strong>MTE3</strong>；不用在第一课记住编号。图中的 <strong>L1/L0</strong> 是矩阵计算路径相关的片上存储，详细用途放到矩阵算子课。</p>
     <div class="arch-explorer">
       <div class="arch-quick-btns" role="group" aria-label="硬件部件快速选择">
         <button type="button" class="hw-node-btn active" data-hw-target="gm" aria-pressed="true">📦 1. 片外 GM 大仓库</button>
@@ -316,19 +335,19 @@
 
           <!-- Outer AI Core Boundary on Right -->
           <rect x="225" y="12" width="543" height="286" rx="10" fill="none" stroke="#64748b" stroke-width="2" stroke-dasharray="6 4" />
-          <text x="240" y="34" font-size="13" font-weight="700" fill="#64748b" font-family="sans-serif">🏭 AI Core 车间内部（片上高速区 · 几十个核并行）</text>
+          <text x="240" y="34" font-size="13" font-weight="700" fill="#64748b" font-family="sans-serif">🏭 AI Core 车间内部（功能示意 · 非物理布局）</text>
 
           <!-- 1. Global Memory (GM) on Left -->
           <g class="svg-hw-group active-hw" data-hw-id="gm" role="button" tabindex="0" aria-label="Global Memory 片外全局显存">
             <rect class="hw-rect" x="14" y="25" width="155" height="260" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="2" />
             <text x="91" y="65" text-anchor="middle" font-size="14" font-weight="700" fill="#1e3a8a" font-family="sans-serif">📦 Global Memory</text>
-            <text x="91" y="86" text-anchor="middle" font-size="12" fill="#3b82f6" font-family="sans-serif">(片外大显存 GM / HBM)</text>
+            <text x="91" y="86" text-anchor="middle" font-size="12" fill="#3b82f6" font-family="sans-serif">(片外存储 GM)</text>
             <rect x="30" y="105" width="123" height="36" rx="4" fill="#dbeafe" stroke="#93c5fd" />
             <text x="91" y="128" text-anchor="middle" font-size="11" font-weight="600" fill="#1e40af" font-family="monospace">输入 xGm, yGm</text>
             <rect x="30" y="155" width="123" height="36" rx="4" fill="#dcfce7" stroke="#86efac" />
             <text x="91" y="178" text-anchor="middle" font-size="11" font-weight="600" fill="#166534" font-family="monospace">输出 zGm</text>
-            <text x="91" y="225" text-anchor="middle" font-size="11" fill="#475569" font-family="sans-serif">容量：32GB ~ 64GB</text>
-            <text x="91" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626" font-family="sans-serif">⚠️ 计算单元够不着</text>
+            <text x="91" y="225" text-anchor="middle" font-size="11" fill="#475569" font-family="sans-serif">容量依设备型号而定</text>
+            <text x="91" y="244" text-anchor="middle" font-size="11" font-weight="700" fill="#dc2626" font-family="sans-serif">本课先搬入 UB 再计算</text>
           </g>
 
           <!-- 2. MTE2 (GM -> UB) -->
@@ -354,7 +373,7 @@
             <text x="452" y="126" text-anchor="middle" font-size="11" font-family="monospace" fill="#78350f">LocalTensor (In)</text>
             <rect x="386" y="144" width="132" height="28" rx="4" fill="#ffffff" stroke="#10b981" />
             <text x="452" y="162" text-anchor="middle" font-size="11" font-family="monospace" fill="#065f46">LocalTensor (Out)</text>
-            <text x="452" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e" font-family="sans-serif">容量仅 ~256KB · 极速</text>
+            <text x="452" y="202" text-anchor="middle" font-size="11" font-weight="600" fill="#92400e" font-family="sans-serif">容量较小 · 靠近计算单元</text>
           </g>
 
           <!-- Bidirectional Arrow UB <-> Vector -->
@@ -374,7 +393,7 @@
           <g class="svg-hw-group" data-hw-id="cube" role="button" tabindex="0" aria-label="Cube 矩阵计算单元">
             <rect class="hw-rect" x="590" y="180" width="160" height="104" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2" />
             <text x="670" y="208" text-anchor="middle" font-size="13" font-weight="700" fill="#7f1d1d" font-family="sans-serif">🧱 Cube 矩阵单元</text>
-            <text x="670" y="228" text-anchor="middle" font-size="11" fill="#b91c1c" font-family="sans-serif">(重型 3D 矩阵乘压铸)</text>
+            <text x="670" y="228" text-anchor="middle" font-size="11" fill="#b91c1c" font-family="sans-serif">(矩阵乘加计算)</text>
             <text x="670" y="252" text-anchor="middle" font-size="11" font-family="monospace" fill="#991b1b">MatMul / Conv2D</text>
             <text x="670" y="270" text-anchor="middle" font-size="10" fill="#991b1b" font-family="sans-serif">拥有专属 L1/L0 缓冲区</text>
           </g>
@@ -389,163 +408,27 @@
       </div>
 
       <div class="arch-detail-panel" aria-live="polite">
-        <div class="arch-detail-title" id="arch-detail-title">📦 Global Memory (GM / HBM) —— 片外远郊万吨大仓库</div>
+        <div class="arch-detail-title" id="arch-detail-title">📦 Global Memory (GM) —— NPU 的片外存储</div>
         <div id="arch-detail-body">
-          <strong>0基础直觉：</strong> 位于 AI Core 车间外面的超大显存（16GB ~ 64GB）。PyTorch 创建的输入张量 <code>x</code> 和 <code>y</code> 一开始就存放在这里。<br>
-          <strong>物理限制：</strong> 空间极大但距离计算核心很远（访问延迟数百周期）。<strong>Vector 和 Cube 计算工人绝不能直接伸手到这里做算术！</strong>
+          <strong>在本课中：</strong> 我们从输入已经准备在 NPU 的 GM 中开始观察。GM 是容量较大的存储，具体容量和物理介质依设备型号而定。向量加法先将输入搬入 UB，再计算。
         </div>
       </div>
     </div>
 
-    <!-- =====================================================================
-         SECTION 3: 动态数据流模拟器 + 代码联动 + 流水线甘特图
-         ===================================================================== -->
-    <h2>3. 核心顿悟：为什么不能直接写指针？（动态数据流与代码联动）</h2>
-
-    <p>现在我们可以彻底回答本课开头的问题了：<strong>为什么在 NPU 上写算子，不能像 CPU 一样写一行 <code>z[i] = x[i] + y[i]</code> 就完事？</strong></p>
-    <p>因为在 CPU 里，硬件缓存是自动管理的；而在昇腾 AI Core 里，为了压榨出极致的吞吐性能，<strong>开发者必须亲自担任车间主任</strong>，在代码中显式指挥三个步骤：<strong>① 让 MTE2 把数据搬进 UB (CopyIn) ➔ ② 让 Vector 在 UB 里做加法 (Compute) ➔ ③ 让 MTE3 把结果写回 GM (CopyOut)</strong>。</p>
-
-    <p>👇 点击下方<strong>“▶ 自动演示全流程”</strong>或分步按钮，同时观察<strong>左侧芯片内真实数字 <code>[10, 20, 30, 40] + [1, 2, 3, 4]</code> 的搬运轨迹</strong>与<strong>右侧 Ascend C 代码的高亮联动</strong>：</p>
-
-    <div class="pipeline-workbench">
-      <div class="workbench-toolbar">
-        <div class="sim-controls" style="margin-bottom:0;" role="group" aria-label="算子三阶段流水步进控制">
-          <button type="button" class="sim-btn" data-sim-step="0" aria-pressed="false">⏮ 0. 初始状态</button>
-          <button type="button" class="sim-btn active" data-sim-step="1" aria-pressed="true">1. CopyIn (搬入)</button>
-          <button type="button" class="sim-btn" data-sim-step="2" aria-pressed="false">2. Compute (计算)</button>
-          <button type="button" class="sim-btn" data-sim-step="3" aria-pressed="false">3. CopyOut (写回)</button>
-        </div>
-        <button type="button" class="sim-play-btn" id="sim-autoplay-btn" aria-pressed="false">▶ 自动演示全流程</button>
-      </div>
-
-      <div class="workbench-split">
-        <!-- Left: Visual Hardware Dataflow Stage -->
-        <div class="chip-stage">
-          <!-- Off-chip GM Zone -->
-          <div class="hw-zone zone-active" id="sim-gm-zone">
-            <div class="hw-zone-header">
-              <span>🏢 片外大显存 Global Memory (GM)</span>
-              <span>GlobalTensor</span>
-            </div>
-            <div class="tensor-row">
-              <span>输入 <code>xGm</code></span>
-              <span class="tensor-vals">
-                <span class="val-chip">10</span><span class="val-chip">20</span><span class="val-chip">30</span><span class="val-chip">40</span>
-              </span>
-            </div>
-            <div class="tensor-row">
-              <span>输入 <code>yGm</code></span>
-              <span class="tensor-vals">
-                <span class="val-chip">1</span><span class="val-chip">2</span><span class="val-chip">3</span><span class="val-chip">4</span>
-              </span>
-            </div>
-            <div class="tensor-row" id="row-z-gm">
-              <span>输出 <code>zGm</code></span>
-              <span class="tensor-vals" id="vals-z-gm">
-                <span class="val-chip">?</span><span class="val-chip">?</span><span class="val-chip">?</span><span class="val-chip">?</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- MTE Transfer Corridor -->
-          <div class="mte-corridor">
-            <div class="mte-channel channel-active" id="sim-mte2-channel">
-              🚚 MTE2 正在搬入：[10,20,30,40] &amp; [1,2,3,4] ⬇
-            </div>
-            <div class="mte-channel" id="sim-mte3-channel">
-              🚛 MTE3 出货通道 (待命)
-            </div>
-          </div>
-
-          <!-- On-chip UB + Vector Zone -->
-          <div class="hw-zone zone-active" id="sim-ub-zone">
-            <div class="hw-zone-header">
-              <span>🛠️ AI Core 片内工作台 Unified Buffer (UB)</span>
-              <span>LocalTensor</span>
-            </div>
-            <div class="tensor-row row-highlight" id="row-x-local">
-              <span>片上 <code>xLocal</code></span>
-              <span class="tensor-vals" id="vals-x-local">
-                <span class="val-chip">10</span><span class="val-chip">20</span><span class="val-chip">30</span><span class="val-chip">40</span>
-              </span>
-            </div>
-            <div class="tensor-row row-highlight" id="row-y-local">
-              <span>片上 <code>yLocal</code></span>
-              <span class="tensor-vals" id="vals-y-local">
-                <span class="val-chip">1</span><span class="val-chip">2</span><span class="val-chip">3</span><span class="val-chip">4</span>
-              </span>
-            </div>
-            <div class="tensor-row" id="sim-vector-banner" style="justify-content:center; font-weight:700; font-family:var(--font-sans);">
-              📦 原料已就位！Vector 准备启动并行加法...
-            </div>
-            <div class="tensor-row" id="row-z-local">
-              <span>片上 <code>zLocal</code></span>
-              <span class="tensor-vals" id="vals-z-local">
-                <span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span><span class="val-chip">--</span>
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Right: Code Comparison & Live Synchronizer -->
-        <div class="code-sync-pane">
-          <div class="cpu-bad-box">
-            <strong>❌ 为什么不能像 CPU 这样直接写？</strong><br>
-            <code>zGm[i] = xGm[i] + yGm[i];</code><br>
-            <span style="opacity:0.88;">原因：<code>xGm/yGm</code> 在片外显存，Vector 计算单元的电路根本连不到片外！必须拆成下面三步：</span>
-          </div>
-
-          <div style="font-size:0.75rem; color:#d5c4a1; margin-bottom:0.35rem; font-family:var(--font-sans);">
-            <strong>✅ Ascend C 标准三段式核函数（点击代码行也可切换动画）：</strong>
-          </div>
-
-          <div class="ascend-code-lines">
-            <div class="sync-code-block" data-code-step="0">
-              <span class="sync-code-comment">// 0. 绑定片外大仓库 GM 地址指针</span>
-              <code>GlobalTensor&lt;half&gt; xGm, yGm, zGm;</code>
-            </div>
-
-            <div class="sync-code-block code-active" data-code-step="1">
-              <span class="sync-code-comment">// 1. CopyIn 阶段：指挥 MTE2 从 GM 搬入片内 UB</span>
-              <code>DataCopy(xLocal, xGm, 4);</code><br>
-              <code>DataCopy(yLocal, yGm, 4);</code>
-            </div>
-
-            <div class="sync-code-block" data-code-step="2">
-              <span class="sync-code-comment">// 2. Compute 阶段：指挥 Vector 在 UB 内一排同时相加</span>
-              <code>Add(zLocal, xLocal, yLocal, 4);</code>
-            </div>
-
-            <div class="sync-code-block" data-code-step="3">
-              <span class="sync-code-comment">// 3. CopyOut 阶段：指挥 MTE3 把 UB 结果写回 GM</span>
-              <code>DataCopy(zGm, zLocal, 4);</code>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="sim-status" id="sim-status-text" aria-live="polite" style="margin-top:1rem;">
-        <strong>第一步 Stage 1 (CopyIn 搬入片上)：</strong> <strong>MTE2 搬运引擎</strong>启动！执行 <code>DataCopy</code>，将 <code>x</code> 和 <code>y</code> 的 4 个元素从片外 GM 异步拉进片上高速缓存 <strong>UB</strong> 的 <code>xLocal</code> 与 <code>yLocal</code> 槽位。
-      </div>
-    </div>
-
-    <!-- 3B: 为什么叫“流水线”？串行死等 vs 分块重叠并行 -->
-    <h3>⚡ 进阶追问：既然要先搬进来、算完再搬出去，岂不是更慢了？</h3>
-    <p>这是所有 0基础同学都会产生的灵魂疑问！如果只有 1 块数据，按部就班地“搬入 ➔ 计算 ➔ 写回”，确实会有等待时间。但别忘了两点：</p>
-    <ol>
-      <li><strong>数据切分（<span class="term-chip" data-term="Tiling">Tiling</span>）：</strong> 真实大模型的张量有几百 MB，而片内 UB 只有 256 KB，所以我们一定会把大张量切成许多小块（比如<strong>块0、块1、块2...</strong>）分批处理。</li>
-      <li><strong>三套硬件独立并行：</strong> <strong>MTE2（进货车）</strong>、<strong>Vector（计算工）</strong>、<strong>MTE3（出货车）</strong>是三个彼此独立的硬件单元！当 Vector 正在算“块0”时，MTE2 根本不用闲着，它可以<strong>同时去搬“块1”</strong>！</li>
-    </ol>
-    <p>点击下方按钮，直观对比<strong>“串行死等”</strong>与<strong>“达芬奇流水线并行（Pipeline Overlap）”</strong>的巨大差距：</p>
-
+      </details>
+      <details class="lesson-details">
+        <summary>选读 C · 多块数据怎样重叠处理？</summary>
+        <p>数据太多、工作台放不下时，可以分成小块逐批处理，这叫<strong>数据分块（Tiling）</strong>。同一块仍要先搬入、再计算、最后写回；不同块之间有机会重叠。</p>
+        <p>要让下一块搬入与当前块计算重叠，需要安排好不同数据块的缓冲空间和同步关系；<strong>双缓冲（Double Buffer）</strong>是常见方法。实现留到后续课。</p>
+        <p class="margin-note"><strong>读图假设：</strong>三块数据，每块的三个阶段均耗时 1 拍；缓冲与同步已就绪，各单元没有额外资源争用。“拍”是示意时间单位。现实各阶段耗时不同，收益需要实际测量。</p>
     <div class="gantt-panel">
       <div class="gantt-header">
         <div>
           <strong style="font-size:0.96rem;">⏱️ 三大硬件时间轴甘特图（处理 3 个数据块：块0、块1、块2）</strong>
         </div>
         <div class="gantt-mode-btns" role="group" aria-label="流水线并行模式对比切换">
-          <button type="button" class="sim-btn" data-gantt-mode="serial" aria-pressed="false">🐢 错误直觉：串行死等 (9拍)</button>
-          <button type="button" class="sim-btn active" data-gantt-mode="pipeline" aria-pressed="true">⚡ 真实硬件：流水线重叠并行 (5拍)</button>
+          <button type="button" class="sim-btn" data-gantt-mode="serial" aria-pressed="false">逐块完成：9 拍</button>
+          <button type="button" class="sim-btn active" data-gantt-mode="pipeline" aria-pressed="true">理想重叠：5 拍</button>
         </div>
       </div>
 
@@ -597,122 +480,20 @@
       </div>
 
       <div class="sim-status" id="gantt-summary-text" aria-live="polite">
-        ⚡ <strong>达芬奇流水线并行模式（耗时缩短至 5 拍，第 3 拍三大硬件 100% 同频满载！）：</strong> 因为 MTE2、Vector、MTE3 是<strong>三套独立的硬件单元</strong>！看<strong>第 3 拍（第 3 列）</strong>：MTE3 正在写回<code>块0</code>、Vector 正在算<code>块1</code>、MTE2 正在搬入<code>块2</code>——搬运耗时被计算完美掩盖！这就是为什么要分成 <code>CopyIn ➔ Compute ➔ CopyOut</code> 三阶段的核心原因！
+        <strong>理想重叠示意：</strong> 假设每块的搬入、计算、写回各耗时 1 拍，缓冲与同步已安排好，且没有额外资源争用。第 3 拍写回块 0、计算块 1、搬入块 2，总计 5 拍；这不是实测耗时，也不会仅因拆成三阶段就自动发生。
       </div>
     </div>
 
-    <!-- =====================================================================
-         SECTION 4: 真机探针练习 + 交互式终端输出解剖器
-         ===================================================================== -->
-    <h2>4. 真机探针练习：一行命令看穿昇腾硬件指标</h2>
-
-    <p>现在把刚刚建立的硬件心智模型映射到真实机器上。请在你的昇腾服务器终端执行以下硬件探针命令：</p>
-
-    <pre><code># 1. 查看昇腾 NPU 芯片型号、AICore 算力占用率与片外显存 (HBM/GM) 容量
-npu-smi info
-
-# 2. 检查 CANN 开发套件 (Ascend C 编译器与头文件) 安装路径
-echo $ASCEND_TOOLKIT_HOME</code></pre>
-
-    <p>看到满屏英文表格不知道看哪？<strong>点击下方终端模拟器中的蓝色高亮热点</strong>，立刻把终端输出与刚刚学的硬件概念对上号：</p>
-
-    <div class="term-explorer">
-      <div class="term-topbar">
-        <div class="term-dots" aria-hidden="true">
-          <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
-        </div>
-        <span>root@ascend-server:~# npu-smi info （点击蓝色标签查看解读）</span>
-        <span>Interactive Terminal</span>
-      </div>
-      <div class="term-body">
-<pre style="margin:0; border:none; padding:0; background:transparent; color:inherit;">+------------------------------------------------------------------------------------------------+
-| npu-smi 23.0.0                   Version: 23.0.0                                               |
-+---------------------------+---------------+----------------------------------------------------+
-| NPU   <button type="button" class="term-hotspot active" aria-pressed="true" data-term-explain="<strong>① 芯片型号 (Name: Ascend 910B)：</strong> 代表你的 Device 硬件型号。不同型号内部包含的 <strong>AI Core 车间数量</strong>不同（例如 910B 包含 20~24 个或更多 AI Core），单核片上 <strong>UB 容量</strong>通常为 192KB。">Name</button>                | <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>② 板卡健康度与功耗 (Health: OK | Power: 68.5W | Temp: 41C)：</strong> 确认 NPU 加速卡供电、散热和驱动通信正常。只有 Health 为 OK 时才能正常发起 Kernel Launch。">Health</button>        | Power(W)    Temp(C)           Hugepages-Usage(page)|
-| Chip                      | Bus-Id        | <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>③ AI Core 实时利用率 (AICore(%): 0)：</strong> 这就是我们第 2 节拆解的 <strong>达芬奇 AI Core（Cube + Vector + Scalar）</strong> 繁忙程度！当前为 0% 说明车间空闲；当你运行算子或大模型时，这里会跳变到 80%~100%。">AICore(%)</button>   <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>④ 片外大仓库显存占用 (HBM-Usage: 1024 / 65536 MB)：</strong> 重点关注！这里的 <strong>HBM（高带宽显存，共 65536MB = 64GB）</strong> 就是我们在架构图里反复强调的 <strong>片外 Global Memory (GM)</strong>！你的输入输出 GlobalTensor 全都住在这里。">HBM-Usage(MB)</button>          |
-+===========================+===============+====================================================+
-| 0     <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>① 芯片型号 (Name: Ascend 910B)：</strong> 代表你的 Device 硬件型号。不同型号内部包含的 <strong>AI Core 车间数量</strong>不同（例如 910B 包含 20~24 个或更多 AI Core），单核片上 <strong>UB 容量</strong>通常为 192KB。">910B</button>                | OK            | 68.5        41                0    / 0             |
-| 0                         | 0000:C1:00.0  | <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>③ AI Core 实时利用率 (AICore(%): 0)：</strong> 这就是我们第 2 节拆解的 <strong>达芬奇 AI Core（Cube + Vector + Scalar）</strong> 繁忙程度！当前为 0% 说明车间空闲；当你运行算子或大模型时，这里会跳变到 80%~100%。">0</button>           <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>④ 片外大仓库显存占用 (HBM-Usage: 1024 / 65536 MB)：</strong> 重点关注！这里的 <strong>HBM（高带宽显存，共 65536MB = 64GB）</strong> 就是我们在架构图里反复强调的 <strong>片外 Global Memory (GM)</strong>！你的输入输出 GlobalTensor 全都住在这里。">1024 / 65536</button>           |
-+===========================+===============+====================================================+
-| <button type="button" class="term-hotspot" aria-pressed="false" data-term-explain="<strong>⑤ 正在运行的异构进程 (No running processes found)：</strong> 当 Host 侧通过 CANN 下发算子任务时，这里会显示对应的进程 PID 与占用的 GM 显存大小。">No running processes found in NPU 0</button>                                                            |
-+===========================+===============+====================================================+</pre>
-      </div>
-      <div class="term-inspector" id="term-inspector-box" aria-live="polite">
-        <strong>① 芯片型号 (Name: Ascend 910B)：</strong> 代表你的 Device 硬件型号。不同型号内部包含的 <strong>AI Core 车间数量</strong>不同（例如 910B 包含 20~24 个或更多 AI Core），单核片上 <strong>UB 容量</strong>通常为 192KB。
-      </div>
-    </div>
-
-    <!-- =====================================================================
-         SECTION 5: 主动提取测验 (Active Recall Quiz)
-         ===================================================================== -->
-    <h2>5. 主动提取测验 (Active Recall Quiz)</h2>
-    <p>不看上面的图解，检验一下你的大脑里是否已经建立起达芬奇 AI Core 的数据流沙盘（点击选项即时判分）：</p>
-
-    <div class="quiz-section">
-      <!-- Question 1: Vector unit data constraint (correct = 2) -->
-      <div class="quiz-question"
-           data-correct="2"
-           data-explain-correct="完全正确！Vector 向量计算单元只能直接读写 AI Core 内部贴身的 Unified Buffer (UB) 工作台，绝不能跨片直接操作 GM。"
-           data-explain-wrong="再想一想：片外 GM 距离远、延迟高，Vector 单元的硬件电路只能直接读写 AI Core 内部的哪块高速缓存工作台？">
-        <div class="quiz-prompt">测验 1：在达芬奇 AI Core 中，Vector 向量计算单元只能直接读写哪里的张量数据？</div>
-        <div class="quiz-options">
-          <button class="quiz-option" type="button">片外大容量全局显存（GM）存储区</button>
-          <button class="quiz-option" type="button">主机端系统物理内存（OS）分页区</button>
-          <button class="quiz-option" type="button">片内超高速统一缓存（UB）工作区</button>
-          <button class="quiz-option" type="button">固态硬盘持久化存储（IO）阵列区</button>
-        </div>
-        <div class="quiz-feedback" aria-live="polite" role="status"></div>
-      </div>
-
-      <!-- Question 2: Three pipeline stages sequence (correct = 0) -->
-      <div class="quiz-question"
-           data-correct="0"
-           data-explain-correct="太棒了！Ascend C 严格遵循三段式流水线：先由 MTE2 搬入片上 UB，再由 Vector 就地计算，最后由 MTE3 写回片外显存 GM。"
-           data-explain-wrong="顺序不对哦。回顾上方的动画模拟器：原始数据一开始在片外 GM 大仓库里，必须先搬到片上 UB 工作台才能计算。">
-        <div class="quiz-prompt">测验 2：Ascend C 向量算子核函数遵循的标准三阶段数据流转顺序是什么？</div>
-        <div class="quiz-options">
-          <button class="quiz-option" type="button">搬入片上 ➔ 片上计算 ➔ 写回显存</button>
-          <button class="quiz-option" type="button">写回显存 ➔ 搬入片上 ➔ 片上计算</button>
-          <button class="quiz-option" type="button">片上计算 ➔ 搬入片上 ➔ 写回显存</button>
-          <button class="quiz-option" type="button">搬入片上 ➔ 写回显存 ➔ 片上计算</button>
-        </div>
-        <div class="quiz-feedback" aria-live="polite" role="status"></div>
-      </div>
-
-      <!-- Question 3: Why independent MTE & Vector (correct = 1) -->
-      <div class="quiz-question"
-           data-correct="1"
-           data-explain-correct="一针见血！正因为 MTE2、Vector、MTE3 是三套独立硬件，在处理第 N 块数据的计算时，可以同时搬运第 N+1 块数据，实现流水线重叠！"
-           data-explain-wrong="不正确。回顾第 3 节的甘特图对比：为什么把数据切成多块后，5 拍就能干完原本 9 拍的活？">
-        <div class="quiz-prompt">测验 3：达芬奇架构将 MTE 搬运引擎与 Vector 计算单元设计为独立硬件的核心目的是什么？</div>
-        <div class="quiz-options">
-          <button class="quiz-option" type="button">为了彻底取消片内高速缓存的容量限制</button>
-          <button class="quiz-option" type="button">为了让数据搬运与数学计算能并行重叠</button>
-          <button class="quiz-option" type="button">为了允许向量单元直接读写片外大显存</button>
-          <button class="quiz-option" type="button">为了把所有矩阵乘法都转交给标量单元</button>
-        </div>
-        <div class="quiz-feedback" aria-live="polite" role="status"></div>
-      </div>
-    </div>
-
-    <h2>6. 推荐第一手权威资料 (Primary Source)</h2>
-    <div class="margin-note">
-      <strong>📖 必读权威源：</strong> <a href="https://www.hiascend.com/document" target="_blank" rel="noopener">昇腾社区官方文档中心 - 《Ascend C 算子开发指南》</a> 中的 <strong>“快速入门 &gt; 编程模型”</strong> 章节。结合本课的交互沙盘再去读官方文档，你会发现原本晦涩的架构图瞬间变得一目了然。
-    </div>
+      </details>
+      <details class="lesson-details">
+        <summary>选读 D · 官方资料，按需查阅</summary>
+        <p>到<a href="https://www.hiascend.com/document" target="_blank" rel="noopener">昇腾官方文档中心</a>，选择与你设备和 CANN 版本匹配的《Ascend C 算子开发指南》，查阅“编程模型”中的向量编程范式。先对应 CopyIn、Compute、CopyOut，不要求第一课读完全部架构内容。</p>
+      </details>
+    </section>
   </main>
-
   <footer class="lesson-footer">
-    <div class="teacher-callout">
-      <strong>💬 导师在线提示：</strong><br>
-      恭喜完成全面升级后的第 0001 课！现在你不仅知道了 <code>Host / Device / CANN</code> 的关系，还亲眼看到了数据如何在 <code>GM ➔ MTE2 ➔ UB (Vector) ➔ MTE3 ➔ GM</code> 之间像流水线一样奔流。随时告诉我你在运行 <code>npu-smi info</code> 时看到的卡号，或者直接对我说<strong>“进入第 2 课”</strong>，我们将亲手解剖第一个完整的 Ascend C 核函数 <code>AddCustom</code>！
-    </div>
-
-    <!-- Standard Three-stage Lesson Flow Navigation -->
-    <div class="lesson-flow-nav">
-      <a href="../index.html" class="flow-btn">← 课时总览</a>
-      <a href="../index.html" class="flow-btn">📋 课程主页</a>
-      <div class="flow-btn upcoming" title="正在备课中，敬请期待">下一课：0002 核函数解剖 ⏳</div>
-    </div>
+    <div class="teacher-callout"><strong>带着一个具体收获进入下一课：</strong>我能讲清一次加法的数据路线，并在自己的设备上找到基本信息。下一课再把图里的三个动作变成完整代码。</div>
+    <div class="lesson-flow-nav"><a href="../index.html" class="flow-btn">← 课时总览</a><a href="#main-content" class="flow-btn">回到本课开头</a><div class="flow-btn upcoming">下一课：核函数解剖 · 筹备中</div></div>
   </footer>
 </body>
 </html>

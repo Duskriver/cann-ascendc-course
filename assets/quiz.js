@@ -76,32 +76,32 @@ document.addEventListener('DOMContentLoaded', () => {
   // =========================================================================
   const hwData = {
     gm: {
-      title: '📦 Global Memory (GM / HBM) —— 片外远郊万吨大仓库',
-      body: '<strong>0基础直觉：</strong> 位于 AI Core 车间外面的超大显存（16GB ~ 64GB）。PyTorch 创建的输入张量 <code>x</code> 和 <code>y</code> 一开始就存放在这里。<br><strong>物理限制：</strong> 空间极大但距离计算核心很远（访问延迟数百周期）。<strong>Vector 和 Cube 计算工人绝不能直接伸手到这里做算术！</strong>'
+      title: '📦 全局存储（GM）—— 设备上的大仓库',
+      body: '<strong>本课中的角色：</strong> 保存 NPU 上的输入和输出数据。演示从输入已经放在设备全局存储中开始；主机内存与设备内存之间的传输另有步骤。<br><strong>数据路线：</strong> 本课的向量加法先把输入搬到片上工作台，再计算、写回。存储介质与容量随设备型号而异。'
     },
     mte2: {
-      title: '🚚 MTE2 搬运引擎 —— 进货专线运输车队 (GM ➔ 片上)',
-      body: '<strong>0基础直觉：</strong> 专门负责把原材料从片外大仓库（GM）拉到车间内工作台（UB 或 L1）的自动化物流车队。<br><strong>代码对应：</strong> 在 Ascend C 的 <code>CopyIn()</code> 阶段调用 <code>DataCopy(xLocal, xGm, count)</code> 时，本质上就是给 MTE2 下达拉货指令。'
+      title: '🚚 搬入引擎（MTE2）—— 把原料送到工作台',
+      body: '<strong>本课中的角色：</strong> 将输入从全局存储（GM）搬到片上工作台（UB）。<br><strong>对应阶段：</strong> 搬入（CopyIn）。数据搬入完成后，计算才能使用它。'
     },
     ub: {
-      title: '🛠️ Unified Buffer (UB) —— 工人手边的超高速工作台',
-      body: '<strong>0基础直觉：</strong> 建在 AI Core 车间内部的黄金工作台（SRAM 高速缓存）。虽然只有大约 <strong>192KB ~ 256KB</strong> 大小，但读写速度极快（单周期吞吐）。<br><strong>核心铁律：</strong> 所有要给 Vector 单元计算的数据，必须先摆在 UB 工作台上；算完的结果也先放在 UB 上，再由 MTE3 运走。'
+      title: '🛠️ 统一缓冲区（UB）—— 片上工作台',
+      body: '<strong>本课中的角色：</strong> 容量比全局存储小、靠近计算单元的暂存空间。这里先放输入，再存放向量加法的结果。<br><strong>记住区别：</strong> UB 中已经有结果，不代表 GM 中的输出也已更新；还需要写回。具体容量随芯片型号而异。'
     },
     vector: {
-      title: '⚡ Vector 向量计算单元 —— 一排数据同时算的流水线工人',
-      body: '<strong>0基础直觉：</strong> 站在 UB 工作台旁边的超级工人。CPU 一次只算 1 对数，而 Vector 单条指令就能把 UB 里一整排（如 64 或 128 个数）同时相加、相乘、求指数（Exp）或做 ReLU 激活。<br><strong>代码对应：</strong> <code>Compute()</code> 阶段里的 <code>Add(zLocal, xLocal, yLocal, count)</code>。'
+      title: '⚡ 向量计算单元（Vector）—— 成批处理数字的工人',
+      body: '<strong>本课中的角色：</strong> 对工作台上的多组数字进行同类运算。本例把对应位置的数字相加。<br><strong>对应阶段：</strong> 计算（Compute）。完成后，结果先保存在 UB 中。'
     },
     cube: {
-      title: '🧱 Cube 矩阵乘单元 —— 专攻大模型的重型矩阵压铸机',
-      body: '<strong>0基础直觉：</strong> 专门为深度学习矩阵乘法（<em>A</em> × <em>B</em> + <em>C</em>）定制的硬核巨兽。一锤子砸下去，1 个时钟周期就能完成 16 × 16 × 16（4096 次乘加）运算！大语言模型里 80% 以上的算力由它提供。'
+      title: '🧱 矩阵计算单元（Cube）—— 处理矩阵乘法',
+      body: '<strong>先认识即可：</strong> 矩阵是一张按行、列排列的数字表。Cube 擅长矩阵乘加运算，具体规格和组织方式随芯片型号而异。<br><strong>本课范围：</strong> 当前示例使用向量加法，暂不涉及矩阵计算的数据路线。'
     },
     scalar: {
-      title: '📋 Scalar 标量单元 —— 拿着计数器喊口令的车间调度员',
-      body: '<strong>0基础直觉：</strong> 相当于嵌在 AI Core 里的迷你 CPU。它不干重体力活，专门负责算 <code>for (int i = 0; i &lt; tileNum; i++)</code> 的循环计数、计算下一块数据的内存偏移地址，并指挥 MTE、Vector 和 Cube 协同干活。'
+      title: '📋 标量单元（Scalar）—— 处理计数与控制',
+      body: '<strong>先认识即可：</strong> 处理循环计数、地址计算、条件判断等工作，配合搬运和计算单元执行程序。<br><strong>本课范围：</strong> 先理解数据在哪里、经过哪些步骤；控制代码将在后续课程中介绍。'
     },
     mte3: {
-      title: '🚛 MTE3 搬运引擎 —— 出货专线运输车队 (UB ➔ GM)',
-      body: '<strong>0基础直觉：</strong> 当 Vector 工人在 UB 工作台上把结果 <code>zLocal</code> 算好后，必须把工作台腾出来给下一批货用。MTE3 就负责把成品从 UB 运回片外大仓库（GM）。<br><strong>代码对应：</strong> 在 <code>CopyOut()</code> 阶段调用 <code>DataCopy(zGm, zLocal, count)</code>。'
+      title: '🚛 写回引擎（MTE3）—— 把结果送回大仓库',
+      body: '<strong>本课中的角色：</strong> 将 UB 中算好的结果写入设备全局存储（GM）。<br><strong>对应阶段：</strong> 写回（CopyOut）。这里的写回仍发生在 NPU 一侧，不等同于把结果复制回主机，也不自动释放 UB 缓冲区。'
     }
   };
 
@@ -164,69 +164,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const stepConfigs = {
     '0': {
-      desc: '<strong>初始状态（待命）：</strong> 输入数据 <code>x = [10, 20, 30, 40]</code> 和 <code>y = [1, 2, 3, 4]</code> 静静躺在片外大仓库 <strong>Global Memory (GM)</strong> 中。片内 <strong>UB 工作台</strong> 空空如也，Vector 工人等待原料。',
+      desc: '<strong>初始状态：</strong> 输入 <code>x = [10, 20, 30, 40]</code> 和 <code>y = [1, 2, 3, 4]</code> 已放在 NPU 的全局存储（GM）中。片上工作台（UB）还没有输入，输出中的 <code>?</code> 表示尚未写入本次结果。',
       gmZoneActive: true,
       ubZoneActive: false,
       mte2Active: false,
       mte3Active: false,
-      mte2Text: '🚚 MTE2 进货通道 (待命)',
-      mte3Text: '🚛 MTE3 出货通道 (待命)',
+      mte2Text: '🚚 搬入通道：待命',
+      mte3Text: '🚛 写回通道：待命',
       xLocalVals: ['--', '--', '--', '--'],
       yLocalVals: ['--', '--', '--', '--'],
       zLocalVals: ['--', '--', '--', '--'],
       zGmVals: ['?', '?', '?', '?'],
-      vectorStatus: '⏳ Vector 向量单元：等待 UB 准备好数据...',
+      vectorStatus: '⏳ 计算单元：等待工作台准备好输入',
       xLocalHighlight: false,
       zLocalComputed: false,
       zGmComputed: false
     },
     '1': {
-      desc: '<strong>第一步 Stage 1 (CopyIn 搬入片上)：</strong> <strong>MTE2 搬运引擎</strong>启动！执行 <code>DataCopy</code>，将 <code>x</code> 和 <code>y</code> 的 4 个元素从片外 GM 异步拉进片上高速缓存 <strong>UB</strong> 的 <code>xLocal</code> 与 <code>yLocal</code> 槽位。',
+      desc: '<strong>第一步：搬入完成后（CopyIn）。</strong> 两组输入已从大仓库（GM）复制到工作台（UB）。此时还没有相加；大仓库里的原始输入仍然保留。图中只展示 4 个数，代码为理解过程的伪代码。',
       gmZoneActive: true,
       ubZoneActive: true,
       mte2Active: true,
       mte3Active: false,
-      mte2Text: '🚚 MTE2 正在搬入：[10,20,30,40] & [1,2,3,4] ⬇',
-      mte3Text: '🚛 MTE3 出货通道 (待命)',
+      mte2Text: '🚚 搬入已完成：两组输入已复制到工作台 ↓',
+      mte3Text: '🚛 写回通道：待命',
       xLocalVals: ['10', '20', '30', '40'],
       yLocalVals: ['1', '2', '3', '4'],
       zLocalVals: ['--', '--', '--', '--'],
       zGmVals: ['?', '?', '?', '?'],
-      vectorStatus: '📦 原料已就位！Vector 准备启动并行加法...',
+      vectorStatus: '📦 输入已就位，还没有进行加法',
       xLocalHighlight: true,
       zLocalComputed: false,
       zGmComputed: false
     },
     '2': {
-      desc: '<strong>第二步 Stage 2 (Compute 片上计算)：</strong> <strong>Vector 向量单元</strong>发威！单条 <code>Add</code> 指令同时对 UB 内的 4 对数字做并行加法（<code>10+1, 20+2, 30+3, 40+4</code>），瞬间在 UB 内算出 <code>zLocal = [11, 22, 33, 44]</code>！注意此时片外 GM 的 <code>zGm</code> 还没变。',
+      desc: '<strong>第二步：计算完成后（Compute）。</strong> 向量计算单元把对应位置的数字相加，工作台（UB）中的结果变成 <code>[11, 22, 33, 44]</code>。<strong>大仓库（GM）中的输出还没有更新。</strong> 先找出两处输出的不同，再继续。',
       gmZoneActive: false,
       ubZoneActive: true,
       mte2Active: false,
       mte3Active: false,
-      mte2Text: '🚚 MTE2 进货通道 (空闲)',
-      mte3Text: '🚛 MTE3 出货通道 (准备出货)',
+      mte2Text: '🚚 搬入通道：空闲',
+      mte3Text: '🚛 写回通道：等待写回结果',
       xLocalVals: ['10', '20', '30', '40'],
       yLocalVals: ['1', '2', '3', '4'],
       zLocalVals: ['11', '22', '33', '44'],
       zGmVals: ['?', '?', '?', '?'],
-      vectorStatus: '⚡ Vector 并行计算中：[10+1, 20+2, 30+3, 40+4] ➔ [11, 22, 33, 44]',
+      vectorStatus: '⚡ 计算已完成：工作台上的结果是 [11, 22, 33, 44]',
       xLocalHighlight: false,
       zLocalComputed: true,
       zGmComputed: false
     },
     '3': {
-      desc: '<strong>第三步 Stage 3 (CopyOut 写回显存)：</strong> <strong>MTE3 搬运引擎</strong>启动！执行 <code>DataCopy</code>，将片上 UB 算好的 <code>zLocal = [11, 22, 33, 44]</code> 写回片外大仓库 GM 的 <code>zGm</code>，腾出宝贵的 UB 空间给下一批数据使用！',
+      desc: '<strong>第三步：写回完成后（CopyOut）。</strong> 工作台（UB）中的结果已复制到 NPU 大仓库（GM）的输出位置，那里也变成 <code>[11, 22, 33, 44]</code>。这一步没有把结果复制回主机，也没有自动释放 UB 空间。',
       gmZoneActive: true,
       ubZoneActive: true,
       mte2Active: false,
       mte3Active: true,
-      mte2Text: '🚚 MTE2 进货通道 (空闲)',
-      mte3Text: '🚛 MTE3 正在写回：[11, 22, 33, 44] ⬆',
+      mte2Text: '🚚 搬入通道：空闲',
+      mte3Text: '🚛 写回已完成：[11, 22, 33, 44] 已复制到设备大仓库 ↑',
       xLocalVals: ['10', '20', '30', '40'],
       yLocalVals: ['1', '2', '3', '4'],
       zLocalVals: ['11', '22', '33', '44'],
       zGmVals: ['11', '22', '33', '44'],
-      vectorStatus: '✅ 本批次完成！UB 缓冲区即将释放，准备迎接下一块 Tile',
+      vectorStatus: '✅ 三步完成：设备大仓库中的输出已更新',
       xLocalHighlight: false,
       zLocalComputed: true,
       zGmComputed: true
@@ -252,6 +252,7 @@ document.addEventListener('DOMContentLoaded', () => {
     codeBlocks.forEach((cb) => {
       const active = cb.getAttribute('data-code-step') === stepStr;
       cb.classList.toggle('code-active', active);
+      cb.setAttribute('aria-pressed', active ? 'true' : 'false');
     });
 
     const gmZone = document.getElementById('sim-gm-zone');
@@ -307,6 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (simBtns.length > 0) {
+    applySimStep('0');
+
     simBtns.forEach((btn) => {
       btn.addEventListener('click', () => {
         stopAutoPlay();
@@ -389,7 +392,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { cls: '', text: '闲置' },
         { cls: 'tile-2', text: '块2 写回' }
       ],
-      summary: '🐢 <strong>串行死等模式（耗时 9 拍，硬件利用率仅 33%）：</strong> 每次只处理一整块，MTE2 搬货时 Vector 干瞪眼，Vector 算题时 MTE2 和 MTE3 又在睡大觉。这就像餐厅里服务员端完菜、厨师才开始炒下一道菜！'
+      summary: '<strong>串行示意：共 9 拍。</strong> 假设每块数据的搬入、计算、写回各耗时 1 拍，按顺序完成一块后再处理下一块，3 块共需 9 拍。这是一种执行安排，并非错误结果。'
     },
     pipeline: {
       mte2: [
@@ -425,7 +428,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { cls: '', text: '' },
         { cls: '', text: '' }
       ],
-      summary: '⚡ <strong>达芬奇流水线并行模式（耗时缩短至 5 拍，第 3 拍三大硬件 100% 同频满载！）：</strong> 因为 MTE2、Vector、MTE3 是<strong>三套独立的硬件单元</strong>！看<strong>第 3 拍（T3）</strong>：MTE3 正在写回<code>块0</code>、Vector 正在算<code>块1</code>、MTE2 正在搬入<code>块2</code>——搬运耗时被计算完美掩盖！这就是为什么要分成 <code>CopyIn ➔ Compute ➔ CopyOut</code> 三阶段的核心原因！'
+      summary: '<strong>理想重叠示意：共 5 拍。</strong> 假设各阶段都耗时 1 拍，缓冲区与同步已安排好，且没有额外资源争用。第 3 拍同时写回块0、计算块1、搬入块2。<strong>同一块仍需先搬入、再计算、后写回。</strong> 5 拍是这些假设下的结果，不会仅因代码分成三个阶段而自动实现；实际收益还取决于各阶段耗时。'
     }
   };
 
@@ -472,6 +475,55 @@ document.addEventListener('DOMContentLoaded', () => {
         hs.classList.add('active');
         hs.setAttribute('aria-pressed', 'true');
         termInspector.innerHTML = hs.getAttribute('data-term-explain');
+      });
+    });
+  }
+
+  // =========================================================================
+  // 7. Optional local learning record (only these four lesson fields)
+  // =========================================================================
+  const learningFieldNames = ['device-id', 'device-model', 'device-memory', 'reflection'];
+  const learningFields = Array.from(document.querySelectorAll('[data-learning-field]'))
+    .filter((field) => learningFieldNames.includes(field.getAttribute('data-learning-field')));
+  const learningSaveStatus = document.getElementById('learning-save-status');
+  const learningStorageKey = 'lesson-0001-learning-record-v1';
+
+  function showLearningSaveStatus(message) {
+    if (learningSaveStatus) learningSaveStatus.textContent = message;
+  }
+
+  if (learningFields.length > 0) {
+    try {
+      const saved = localStorage.getItem(learningStorageKey);
+      if (saved) {
+        const record = JSON.parse(saved);
+        if (!record || typeof record !== 'object' || Array.isArray(record)) {
+          throw new Error('Invalid learning record');
+        }
+        learningFields.forEach((field) => {
+          const value = record[field.getAttribute('data-learning-field')];
+          if (typeof value === 'string') field.value = value;
+        });
+        showLearningSaveStatus('已恢复本机浏览器中的学习记录，请对照实际输出自行核对。');
+      } else {
+        showLearningSaveStatus('填写后自动保存在本机浏览器中，请对照实际输出自行核对。');
+      }
+    } catch {
+      showLearningSaveStatus('暂时无法恢复本地记录。可以继续填写，并手工复制内容留存。');
+    }
+
+    learningFields.forEach((field) => {
+      field.addEventListener('input', () => {
+        const record = {};
+        learningFields.forEach((entry) => {
+          record[entry.getAttribute('data-learning-field')] = entry.value;
+        });
+        try {
+          localStorage.setItem(learningStorageKey, JSON.stringify(record));
+          showLearningSaveStatus('已保存在本机浏览器中，请对照实际输出自行核对。');
+        } catch {
+          showLearningSaveStatus('当前浏览器无法保存记录，请手工复制内容留存。');
+        }
       });
     });
   }

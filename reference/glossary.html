@@ -14,7 +14,7 @@
     })();
   </script>
   <link rel="stylesheet" href="../assets/style.css?v=20261025c">
-  <script src="../assets/nav-drawer.js?v=20261025c" defer></script>
+  <script src="../assets/nav-drawer.js?v=20261027b" defer></script>
 </head>
 <body>
   <a href="#main-content" class="skip-link">跳至主要内容</a>
@@ -40,10 +40,10 @@
     </div>
 
     <h1>CANN & 达芬奇架构核心术语表</h1>
-    <p class="subtitle">算子开发与底层硬件协同的标准化词汇基准，所有课程均严格遵从本表定义。</p>
+    <p class="subtitle">按需查阅的课程词汇表。第一课重点关注 CPU/NPU 分工及向量加法数据流，其余概念在后续课逐步展开。</p>
 
     <div class="margin-note">
-      <strong>💡 查阅准则：</strong> 异构计算学习中最容易造成记忆混淆的是各类存储（GM、UB、L1/L0）和搬运引擎（MTE）。每当遇到不熟悉的硬件缩写，随时回到本表速查。
+      <strong>💡 查阅准则：</strong> 遇到不熟悉的名称时再查阅，无需一次记住。以下描述以本课典型 Ascend C 向量编程模型为主，具体接口与硬件能力请结合目标芯片和 CANN 版本文档。
     </div>
 
     <table>
@@ -59,62 +59,67 @@
         <tr>
           <td><strong>Host 与 Device</strong><br><small>主机与设备</small></td>
           <td>系统异构拓扑</td>
-          <td><strong>Host</strong> 指运行通用操作系统（Linux）的主机 CPU，负责任务分发与流程控制；<strong>Device</strong> 指昇腾 NPU 硬件加速器，负责执行高密度并行计算。</td>
+          <td><strong>Host</strong> 指主机 CPU 一侧，负责组织任务、准备数据并发起计算；<strong>Device</strong> 指昇腾 NPU 一侧，执行所分配的计算任务。主机内存与设备内存之间的传输，和 NPU 内部 GM 与 UB 之间的搬运是两个层次。</td>
         </tr>
         <tr>
           <td><strong>CANN</strong><br><small>Compute Architecture for Neural Networks</small></td>
           <td>软件栈中间件</td>
-          <td>华为异构计算架构，向下屏蔽昇腾芯片硬件细节，向上支撑 MindSpore、PyTorch、TensorFlow 等 AI 框架，提供驱动、Runtime、图引擎（GE）与统一算子库。</td>
+          <td>华为面向昇腾的异构计算软件栈，连接上层 AI 框架与底层硬件，提供编译、运行时、算子库及开发工具。本课先将它理解为组织和执行 NPU 任务的软件支持。</td>
         </tr>
         <tr>
           <td><strong>AI Core</strong><br><small>达芬奇计算核心</small></td>
           <td>硬件执行单元</td>
-          <td>昇腾 NPU 的核心计算引擎，内部集成了 Cube（矩阵）、Vector（向量）、Scalar（标量）三大计算单元及多级片上高速缓存。</td>
+          <td>昇腾 NPU 的计算核心。本课程用 Vector（向量）、Cube（矩阵）和 Scalar（标量）说明计算与控制分工；不同芯片的单元组织方式和存储配置有所不同，具体以目标型号文档为准。</td>
         </tr>
         <tr>
           <td><strong>Cube 单元</strong><br><small>矩阵乘加速器</small></td>
           <td>AI Core 计算部件</td>
-          <td>专用于大颗粒度矩阵乘法（<em>M</em> × <em>K</em> × <em>N</em>）硬件加速，单指令即可完成三维立方矩阵乘加运算，是大模型计算的主力。</td>
+          <td>用于矩阵乘加的硬件单元。例如将 M × K 的矩阵与 K × N 的矩阵相乘，得到 M × N 的结果。支持的分块形状、数据类型和吞吐能力依芯片型号而定；第一课作为选读。</td>
         </tr>
         <tr>
           <td><strong>Vector 单元</strong><br><small>向量计算部件</small></td>
           <td>AI Core 计算部件</td>
-          <td>专用于一维数组/张量的并行运算，负责元素级加减乘除、激活函数（ReLU/GeLU/Sigmoid）、归一化（LayerNorm/Softmax）等操作。</td>
+          <td>用于对一批数据执行向量计算，可组合实现元素级运算、激活和归一化等算子。本课的向量加法先把输入搬入 UB，再调用计算接口；这不表示只能处理一维形状的张量。</td>
         </tr>
         <tr>
           <td><strong>Scalar 单元</strong><br><small>标量计算部件</small></td>
           <td>AI Core 控制部件</td>
-          <td>执行常规基础控制流指令（循环计数、地址计算、分支跳转），相当于 AI Core 内部的微型控制大脑。</td>
+          <td>负责标量计算和流程控制，例如循环计数、地址计算与条件分支。第一课只需认识它承担控制工作，不要求掌握其指令细节。</td>
         </tr>
         <tr>
           <td><strong>Global Memory (GM)</strong><br><small>全局显存 / HBM / DDR</small></td>
           <td>片外大容量存储</td>
-          <td>位于 AI Core 之外的高容量内存（数十 GB）。容量大但访问延迟较高，AI Core 的计算单元<strong>无法直接在此处进行数学运算</strong>。</td>
+          <td>设备侧的全局内存，位于计算核心之外，用于存放输入输出等数据。物理存储介质可为 HBM 或 DDR，容量依设备型号而定。本课的向量计算接口使用 UB 中的数据，因此先将输入从 GM 搬入 UB。</td>
         </tr>
         <tr>
           <td><strong>Unified Buffer (UB)</strong><br><small>统一缓冲区</small></td>
           <td>片上高速 SRAM 存储</td>
-          <td>AI Core 内部专供 Vector 单元读写的高速片上暂存空间（通常几百 KB）。数据必须由 GM 搬入 UB 才能被 Vector 单元计算。</td>
+          <td>用于向量计算的片上高速暂存空间，容量依芯片型号而定。在本课的向量加法中，输入先从 GM 搬入 UB，计算结果也先留在 UB，再写回 GM。它不是主机内存，也不等同于 CPU 自动管理的缓存。</td>
+        </tr>
+        <tr>
+          <td><strong>L1 / L0</strong><br><small>矩阵计算相关片上存储（选读）</small></td>
+          <td>片上存储层级</td>
+          <td>矩阵计算相关的片上存储层级，用来暂存输入与中间结果；L0 常按输入或累加结果分为 L0A、L0B、L0C。具体数据通路和容量依芯片型号而定，留待矩阵算子课程展开。</td>
         </tr>
         <tr>
           <td><strong>MTE (Memory Transfer Engine)</strong><br><small>片上搬运引擎</small></td>
           <td>硬件 DMA 控制器</td>
-          <td>负责不同存储介质间（如 GM ↔ UB、GM ↔ L1/L0）异步数据搬运的专用硬件管线，实现数据搬运与数学计算的流水线重叠。</td>
+          <td>负责不同存储位置之间数据搬运的硬件引擎。本课用 MTE2 表示 GM → UB 的搬入、MTE3 表示 UB → GM 的写回。搬运与计算可以重叠，但需要正确安排缓冲与同步；具体通路依芯片型号而定。</td>
         </tr>
         <tr>
           <td><strong>Ascend C</strong><br><small>昇腾 C/C++ 算子编程语言</small></td>
           <td>编程接口规范</td>
-          <td>原生 C/C++ 风格的高性能算子开发语言，采用 SPMD（单程序多数据）编程模型，提供自动多级流水调度与丰富的结构化 Tensor API。</td>
+          <td>用于昇腾算子开发的 C/C++ 编程语言与接口体系。本课程从向量编程范式入门，通过搬运、计算、内存管理与同步接口组织核函数；不把一种范式视为所有设备和算子的唯一写法。</td>
         </tr>
         <tr>
           <td><strong>Tiling</strong><br><small>数据分块切片</small></td>
           <td>Host 侧调度策略</td>
-          <td>将全局显存中超出片上高速缓冲区（UB）容量的超大 Tensor，切分为若干适合单次核函数与单块缓存处理的瓦片（Tile）的数学算法。</td>
+          <td>根据数据形状和硬件资源制定切分策略，包括多核任务分配和核内分块。每个核可在一次核函数执行中循环处理多个数据块；第一课先理解“工作台有限，需要分批处理”。</td>
         </tr>
         <tr>
           <td><strong>TPipe & TQue</strong><br><small>管道与消息队列</small></td>
           <td>Ascend C 基础管道抽象</td>
-          <td>Ascend C 提供的片上数据流管理机制。开发者通过队列在 `CopyIn`、`Compute`、`CopyOut` 之间传递临时缓存指针，硬件自动完成同步与乱序隐藏。</td>
+          <td>Ascend C 流水编程范式中的资源和队列管理接口。TPipe 管理相关资源，TQue 用于阶段间的数据传递与同步。开发者仍需正确安排入队、出队、缓冲分配与释放；实现重叠还取决于缓冲配置和数据依赖。</td>
         </tr>
       </tbody>
     </table>
