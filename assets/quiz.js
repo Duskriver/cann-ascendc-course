@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     },
     cube: {
       title: '🧱 Cube 矩阵乘单元 —— 专攻大模型的重型矩阵压铸机',
-      body: '<strong>0基础直觉：</strong> 专门为深度学习矩阵乘法（$A \\times B + C$）定制的硬核巨兽。一锤子砸下去，1 个时钟周期就能完成 $16 \\times 16 \\times 16$（4096 次乘加）运算！大语言模型里 80% 以上的算力由它提供。'
+      body: '<strong>0基础直觉：</strong> 专门为深度学习矩阵乘法（<em>A</em> × <em>B</em> + <em>C</em>）定制的硬核巨兽。一锤子砸下去，1 个时钟周期就能完成 16 × 16 × 16（4096 次乘加）运算！大语言模型里 80% 以上的算力由它提供。'
     },
     scalar: {
       title: '📋 Scalar 标量单元 —— 拿着计数器喊口令的车间调度员',

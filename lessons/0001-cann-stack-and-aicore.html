@@ -14,7 +14,7 @@
     })();
   </script>
   <link rel="stylesheet" href="../assets/style.css?v=20261025c">
-  <script src="../assets/quiz.js?v=20261025c" defer></script>
+  <script src="../assets/quiz.js?v=20261027a" defer></script>
   <script src="../assets/nav-drawer.js?v=20261025c" defer></script>
 </head>
 <body>
@@ -208,7 +208,7 @@
           <h3><span class="term-chip" data-term="Cube 单元">Cube 矩阵单元</span></h3>
           <div class="unit-role-sub">🧱 角色：重型矩阵压铸机</div>
           <p style="font-size:0.84rem; margin-bottom:0;">
-            达芬奇架构的杀手锏！专攻两个<strong>二维矩阵相乘（$M \times K \times N$）</strong>。一锤子压下去，单周期直接完成 $16 \times 16 \times 16$（4096 次）乘加运算。
+            达芬奇架构的杀手锏！专攻两个<strong>二维矩阵相乘（<em>M</em> × <em>K</em> × <em>N</em>）</strong>。一锤子压下去，单周期直接完成 16 × 16 × 16（4096 次）乘加运算。
           </p>
         </div>
         <div>
@@ -228,7 +228,7 @@
                 <span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span><span class="geo-cell cube-cell"></span>
               </div>
             </div>
-            <div style="font-size:0.7rem; color:var(--ink-muted);">单指令整块矩阵乘加 ($A \times B + C$)</div>
+            <div style="font-size:0.7rem; color:var(--ink-muted);">单指令整块矩阵乘加 (<em>A</em> × <em>B</em> + <em>C</em>)</div>
           </div>
           <div style="font-size:0.78rem; color:var(--ink-muted);">
             <strong>负责算子：</strong> <code>MatMul</code>（全连接层 Linear、注意力 Attention、卷积 Conv）。
